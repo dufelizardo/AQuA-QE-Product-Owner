@@ -23,6 +23,32 @@ PRD → System Design → Agent Design → AI Specs/Rules/Skills → Context Eng
 - **`src/aqua_qe_product_owner/orchestrator/`** — single entry point that decides which workflow to run.
 - **`src/aqua_qe_product_owner/services/`** — external integrations: `llm_service` (local Ollama, generation), `embedding_service` (local Ollama, `bge-m3`), `rag_service` (embedded/local Qdrant, no server) and `jira_service` (Jira Cloud REST API).
 
+## Setup
+
+This is a standalone repository (not part of any monorepo) — `uv sync` here resolves and installs its own dependencies.
+
+1. Install [Python 3.12+](https://www.python.org/) and [uv](https://docs.astral.sh/uv/).
+2. Install [Ollama](https://ollama.com) and pull the three local models this agent uses:
+   ```bash
+   ollama pull mistral   # generation
+   ollama pull phi4      # independent reviewer
+   ollama pull bge-m3    # embeddings
+   ```
+3. Clone this repo and install dependencies:
+   ```bash
+   git clone https://github.com/dufelizardo/AQuA-QE-Product-Owner.git
+   cd AQuA-QE-Product-Owner
+   uv sync
+   ```
+4. Copy `.env.example` to `.env` and fill in the values you need (Ollama works with the defaults; Jira/Confluence credentials are only required for `--jira`, `--confluence` and `--criar-jira`):
+   ```bash
+   cp .env.example .env
+   ```
+5. Run the test suite (fully mocked, no live Ollama/Jira/Confluence calls) to confirm the setup:
+   ```bash
+   uv run pytest
+   ```
+
 ## Usage
 
 ```bash
@@ -70,4 +96,4 @@ In `src/`, all 10 skills and the three workflows are implemented and work end to
 
 Still missing: a `Feature` layer between Epic and User Story (today it only exists as a template in `knowledge/templates/feature.md`, no skill/workflow — evaluated and deliberately deferred until a PRD is large enough to actually need grouping), indexing of `knowledge/domain/` (empty, waiting on a real client), and project/long-term memory (`memory.md` — distinct from the RAG built over `knowledge/`, not yet implemented). `tests/` covers every implemented module (68 tests, LLM/HTTP calls mocked — fast and deterministic, no real calls to Ollama, Jira, or Confluence).
 
-**Infrastructure note**: this project still has no `git init` of its own (it should follow the "every new project gets a separate repository" convention — see the root `CLAUDE.md`, along with future agent projects); the entire history of this implementation exists only on disk in this directory, with no version control.
+This project has its own git repository, independent from the parent monorepo (per the "every new project gets a separate repository" convention — see the root `CLAUDE.md`): [github.com/dufelizardo/AQuA-QE-Product-Owner](https://github.com/dufelizardo/AQuA-QE-Product-Owner).

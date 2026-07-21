@@ -23,6 +23,32 @@ PRD → System Design → Agent Design → AI Specs/Rules/Skills → Context Eng
 - **`src/aqua_qe_product_owner/orchestrator/`** — ponto de entrada único que decide qual workflow executar.
 - **`src/aqua_qe_product_owner/services/`** — integrações externas: `llm_service` (Ollama local, geração), `embedding_service` (Ollama local, `bge-m3`), `rag_service` (Qdrant embutido/local, sem servidor) e `jira_service` (API REST do Jira Cloud).
 
+## Configuração
+
+Este é um repositório independente (não faz parte de nenhum monorepo) — o `uv sync` aqui resolve e instala suas próprias dependências.
+
+1. Instale [Python 3.12+](https://www.python.org/) e [uv](https://docs.astral.sh/uv/).
+2. Instale o [Ollama](https://ollama.com) e baixe os três modelos locais usados por este agente:
+   ```bash
+   ollama pull mistral   # geração
+   ollama pull phi4      # revisor independente
+   ollama pull bge-m3    # embeddings
+   ```
+3. Clone este repositório e instale as dependências:
+   ```bash
+   git clone https://github.com/dufelizardo/AQuA-QE-Product-Owner.git
+   cd AQuA-QE-Product-Owner
+   uv sync
+   ```
+4. Copie `.env.example` para `.env` e preencha os valores necessários (o Ollama funciona com os padrões; as credenciais de Jira/Confluence só são necessárias para `--jira`, `--confluence` e `--criar-jira`):
+   ```bash
+   cp .env.example .env
+   ```
+5. Rode a suíte de testes (totalmente mockada, sem chamadas reais a Ollama/Jira/Confluence) para confirmar a configuração:
+   ```bash
+   uv run pytest
+   ```
+
 ## Uso
 
 ```bash
@@ -70,4 +96,4 @@ Em `src/`, todas as 10 skills e os três workflows estão implementados e funcio
 
 Ainda faltam: uma camada de `Feature` entre Epic e User Story (hoje só existe como template em `knowledge/templates/feature.md`, sem skill/workflow — avaliado e adiado deliberadamente até haver um PRD grande o suficiente para precisar de agrupamento), indexação de `knowledge/domain/` (vazio, aguardando cliente real) e memória de projeto/longo prazo (`memory.md` — distinta do RAG sobre `knowledge/`, ainda não implementada). `tests/` cobre todos os módulos implementados (68 testes, mocks de LLM/HTTP — rápidos e determinísticos, não chamam Ollama nem Jira/Confluence de verdade).
 
-**Nota de infraestrutura**: este projeto ainda não tem `git init` próprio (é o único, junto de futuros agentes, que deveria seguir a convenção "todo projeto novo recebe repositório separado" — ver `CLAUDE.md` raiz); todo o histórico desta implementação existe apenas neste diretório, sem controle de versão.
+Este projeto tem repositório git próprio, independente do monorepo raiz (conforme a convenção "todo projeto novo recebe repositório separado" — ver `CLAUDE.md` raiz): [github.com/dufelizardo/AQuA-QE-Product-Owner](https://github.com/dufelizardo/AQuA-QE-Product-Owner).
