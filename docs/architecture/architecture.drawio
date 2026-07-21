@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mxfile host="app.diagrams.net" agent="AQuA-QE Product Owner" version="24.0.0" type="device">
   <diagram id="camadas" name="1 - Arquitetura em camadas">
-    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="950" math="0" shadow="0">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="970" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -59,54 +59,57 @@
         </mxCell>
 
         <mxCell id="bandSkills" value="Skills" style="rounded=0;whiteSpace=wrap;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontSize=13;fontStyle=1;container=1;collapsible=0;" vertex="1" parent="1">
-          <mxGeometry x="40" y="450" width="920" height="110" as="geometry" />
+          <mxGeometry x="40" y="450" width="920" height="130" as="geometry" />
         </mxCell>
         <mxCell id="sk1" value="Sem LLM&#10;validate_story, validate_epic,&#10;validate_prd, format_prd_markdown,&#10;diff_story_versions, validate_traceability" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=9;" vertex="1" parent="bandSkills">
-          <mxGeometry x="8" y="30" width="176" height="70" as="geometry" />
+          <mxGeometry x="8" y="30" width="176" height="90" as="geometry" />
         </mxCell>
         <mxCell id="sk2" value="LLM gerador (mistral)&#10;generate_prd, extract_requirements,&#10;extract_prd_context, identify_actor/goal/&#10;business_rules, generate_story,&#10;generate_clarifying_questions (+ prd),&#10;refine_story (+ prd), generate_epic_metadata" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=9;" vertex="1" parent="bandSkills">
-          <mxGeometry x="190" y="30" width="176" height="70" as="geometry" />
+          <mxGeometry x="190" y="30" width="176" height="90" as="geometry" />
         </mxCell>
         <mxCell id="sk3" value="LLM revisor independente (phi4)&#10;review_story, review_epic, review_prd" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="bandSkills">
-          <mxGeometry x="372" y="30" width="176" height="70" as="geometry" />
+          <mxGeometry x="372" y="30" width="176" height="90" as="geometry" />
         </mxCell>
         <mxCell id="sk4" value="Embedding / RAG (bge-m3)&#10;retrieve_chunks" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="bandSkills">
-          <mxGeometry x="554" y="30" width="176" height="70" as="geometry" />
+          <mxGeometry x="554" y="30" width="176" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="sk5" value="I/O externo&#10;read_text_file, read_jira_issue,&#10;read_confluence_page, export_markdown,&#10;update_jira_issue, create_jira_epic,&#10;create_jira_story, create_confluence_page" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=9;" vertex="1" parent="bandSkills">
-          <mxGeometry x="736" y="30" width="176" height="70" as="geometry" />
+        <mxCell id="sk5" value="I/O externo&#10;read_text_file, read_jira_issue,&#10;read_confluence_page, export_markdown,&#10;update_jira_issue, create_jira_epic,&#10;create_jira_story, create_confluence_page,&#10;parse_chat_transcript, format_chat_transcript" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=9;" vertex="1" parent="bandSkills">
+          <mxGeometry x="736" y="30" width="176" height="90" as="geometry" />
         </mxCell>
 
         <mxCell id="bandModels" value="Models" style="rounded=0;whiteSpace=wrap;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontSize=13;fontStyle=1;container=1;collapsible=0;" vertex="1" parent="1">
-          <mxGeometry x="40" y="580" width="920" height="90" as="geometry" />
+          <mxGeometry x="40" y="600" width="920" height="90" as="geometry" />
         </mxCell>
         <mxCell id="mdl1" value="UserStory" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=9;" vertex="1" parent="bandModels">
-          <mxGeometry x="23" y="35" width="104" height="40" as="geometry" />
+          <mxGeometry x="4" y="35" width="96" height="40" as="geometry" />
         </mxCell>
         <mxCell id="mdl2" value="Epic" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=9;" vertex="1" parent="bandModels">
-          <mxGeometry x="133" y="35" width="104" height="40" as="geometry" />
+          <mxGeometry x="106" y="35" width="96" height="40" as="geometry" />
         </mxCell>
         <mxCell id="mdl3" value="AcceptanceCriteria" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=9;" vertex="1" parent="bandModels">
-          <mxGeometry x="243" y="35" width="104" height="40" as="geometry" />
+          <mxGeometry x="208" y="35" width="96" height="40" as="geometry" />
         </mxCell>
         <mxCell id="mdl4" value="BusinessRule" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=9;" vertex="1" parent="bandModels">
-          <mxGeometry x="353" y="35" width="104" height="40" as="geometry" />
+          <mxGeometry x="310" y="35" width="96" height="40" as="geometry" />
         </mxCell>
         <mxCell id="mdl5" value="Actor" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=9;" vertex="1" parent="bandModels">
-          <mxGeometry x="463" y="35" width="104" height="40" as="geometry" />
+          <mxGeometry x="412" y="35" width="96" height="40" as="geometry" />
         </mxCell>
         <mxCell id="mdl6" value="Requirement" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=9;" vertex="1" parent="bandModels">
-          <mxGeometry x="573" y="35" width="104" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="mdl8" value="PRDDraft" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=9;" vertex="1" parent="bandModels">
-          <mxGeometry x="793" y="35" width="104" height="40" as="geometry" />
+          <mxGeometry x="514" y="35" width="96" height="40" as="geometry" />
         </mxCell>
         <mxCell id="mdl7" value="PRDContext" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=9;" vertex="1" parent="bandModels">
-          <mxGeometry x="683" y="35" width="104" height="40" as="geometry" />
+          <mxGeometry x="616" y="35" width="96" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mdl8" value="PRDDraft" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=9;" vertex="1" parent="bandModels">
+          <mxGeometry x="718" y="35" width="96" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mdl9" value="ChatMessage" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=9;" vertex="1" parent="bandModels">
+          <mxGeometry x="820" y="35" width="96" height="40" as="geometry" />
         </mxCell>
 
         <mxCell id="bandServices" value="Services" style="rounded=0;whiteSpace=wrap;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontSize=13;fontStyle=1;container=1;collapsible=0;" vertex="1" parent="1">
-          <mxGeometry x="40" y="690" width="920" height="90" as="geometry" />
+          <mxGeometry x="40" y="710" width="920" height="90" as="geometry" />
         </mxCell>
         <mxCell id="svc1" value="llm_service" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="bandServices">
           <mxGeometry x="8" y="35" width="176" height="40" as="geometry" />
@@ -125,7 +128,7 @@
         </mxCell>
 
         <mxCell id="bandExternos" value="Sistemas externos" style="rounded=0;whiteSpace=wrap;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontSize=13;fontStyle=1;container=1;collapsible=0;" vertex="1" parent="1">
-          <mxGeometry x="40" y="800" width="920" height="110" as="geometry" />
+          <mxGeometry x="40" y="820" width="920" height="110" as="geometry" />
         </mxCell>
         <mxCell id="ext1" value="Ollama local&#10;(mistral, phi4, bge-m3)" style="rounded=1;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="bandExternos">
           <mxGeometry x="8" y="35" width="220" height="60" as="geometry" />
