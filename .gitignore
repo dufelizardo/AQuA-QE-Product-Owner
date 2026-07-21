@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Testes
+.pytest_cache/
+.coverage
+
+# Dados locais (Qdrant embutido, etc.)
+.data/
+
+# Ambiente
+.env

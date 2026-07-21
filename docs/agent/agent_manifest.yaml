@@ -1,0 +1,50 @@
+name: Product Owner
+version: 0.1.0
+description: >
+  Gera User Stories, Épicos e Critérios de Aceitação a partir de PRDs,
+  documentos de requisitos e tickets Jira, com rastreabilidade à fonte
+  e validação automática (INVEST/DoR) antes da revisão humana obrigatória.
+
+inputs:
+  - txt
+  - markdown
+  - chat
+  - jira
+  - confluence
+
+outputs:
+  - user_story
+  - acceptance
+  - markdown
+
+skills:
+  - read_text_file
+  - read_jira_issue
+  - read_confluence_page
+  - retrieve_chunks
+  - extract_requirements
+  - identify_actor
+  - identify_goal
+  - identify_business_rules
+  - generate_story
+  - validate_story
+  - review_story
+  - generate_clarifying_questions
+  - refine_story
+  - diff_story_versions
+  - generate_epic_metadata
+  - validate_epic
+  - review_epic
+  - validate_traceability
+  - export_markdown
+  - update_jira_issue
+  - create_jira_epic
+  - create_jira_story
+
+memory:
+  vector: true
+  rag: true
+  knowledge_graph: false
+
+rules: rules.md
+spec: ai_spec.md
