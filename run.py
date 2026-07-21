@@ -198,6 +198,40 @@ def _imprimir_epic_shape(epic: Epic) -> None:
     print(f"valor: {epic.value}")
     print(f"requisitos extraídos: {len(epic.requirements)}")
 
+    contexto = epic.prd_context
+    if contexto and any(
+        [
+            contexto.vision,
+            contexto.problem,
+            contexto.objectives,
+            contexto.target_audience,
+            contexto.non_functional_requirements,
+            contexto.constraints,
+            contexto.success_criteria,
+            contexto.risks,
+            contexto.dependencies,
+        ]
+    ):
+        print("\ncontexto do PRD (além dos requisitos funcionais):")
+        if contexto.vision:
+            print(f"  visão: {contexto.vision}")
+        if contexto.problem:
+            print(f"  problema: {contexto.problem}")
+        if contexto.objectives:
+            print(f"  objetivos: {contexto.objectives}")
+        if contexto.target_audience:
+            print(f"  público-alvo: {contexto.target_audience}")
+        if contexto.non_functional_requirements:
+            print(f"  requisitos não funcionais: {contexto.non_functional_requirements}")
+        if contexto.constraints:
+            print(f"  restrições: {contexto.constraints}")
+        if contexto.success_criteria:
+            print(f"  critérios de sucesso: {contexto.success_criteria}")
+        if contexto.risks:
+            print(f"  riscos: {contexto.risks}")
+        if contexto.dependencies:
+            print(f"  dependências: {contexto.dependencies}")
+
 
 def _rodar_lote(texto: str, saida: str | None, refinar: bool, criar_jira: bool) -> None:
     epic = generate_epic_shape(texto)

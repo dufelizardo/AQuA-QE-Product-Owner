@@ -1,4 +1,4 @@
-from aqua_qe_product_owner.models import Requirement, StoryStatus, UserStory
+from aqua_qe_product_owner.models import PRDContext, Requirement, StoryStatus, UserStory
 from aqua_qe_product_owner.workflow import generate_epic as workflow_module
 
 _METADADOS_PADRAO = {
@@ -27,6 +27,7 @@ def test_items_ambiguos_vao_para_unresolved_items(monkeypatch):
     monkeypatch.setattr(
         workflow_module, "extract_requirements", lambda texto: [_fake_requirement(1)]
     )
+    monkeypatch.setattr(workflow_module, "extract_prd_context", lambda texto: PRDContext())
     monkeypatch.setattr(workflow_module, "identify_actor", lambda texto: "")
     monkeypatch.setattr(workflow_module, "identify_goal", lambda texto: "")
     monkeypatch.setattr(
@@ -47,6 +48,7 @@ def test_items_identificaveis_viram_stories(monkeypatch):
         "extract_requirements",
         lambda texto: [_fake_requirement(1), _fake_requirement(2)],
     )
+    monkeypatch.setattr(workflow_module, "extract_prd_context", lambda texto: PRDContext())
     monkeypatch.setattr(workflow_module, "identify_actor", lambda texto: "cliente")
     monkeypatch.setattr(workflow_module, "identify_goal", lambda texto: "fazer algo")
     monkeypatch.setattr(workflow_module, "identify_business_rules", lambda texto: [])
@@ -94,6 +96,7 @@ def test_itens_mistos_nao_bloqueiam_o_lote(monkeypatch):
         "extract_requirements",
         lambda texto: [_fake_requirement(1), _fake_requirement(2)],
     )
+    monkeypatch.setattr(workflow_module, "extract_prd_context", lambda texto: PRDContext())
 
     def fake_identify_actor(texto):
         return "" if texto == "requisito 1" else "cliente"
@@ -164,6 +167,7 @@ def test_generate_epic_shape_define_epico_sem_gerar_nenhuma_story(monkeypatch):
         "extract_requirements",
         lambda texto: [_fake_requirement(1), _fake_requirement(2)],
     )
+    monkeypatch.setattr(workflow_module, "extract_prd_context", lambda texto: PRDContext())
     monkeypatch.setattr(
         workflow_module, "generate_epic_metadata", lambda texto, requisitos: _METADADOS_PADRAO
     )
@@ -184,6 +188,7 @@ def test_generate_epic_shape_define_epico_sem_gerar_nenhuma_story(monkeypatch):
 
 def test_generate_epic_shape_marca_pending_clarification_quando_validate_falha(monkeypatch):
     monkeypatch.setattr(workflow_module, "extract_requirements", lambda texto: [_fake_requirement(1)])
+    monkeypatch.setattr(workflow_module, "extract_prd_context", lambda texto: PRDContext())
     monkeypatch.setattr(
         workflow_module, "generate_epic_metadata", lambda texto, requisitos: _METADADOS_PADRAO
     )

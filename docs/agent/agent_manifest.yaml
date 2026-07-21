@@ -23,6 +23,7 @@ skills:
   - read_confluence_page
   - retrieve_chunks
   - extract_requirements
+  - extract_prd_context
   - identify_actor
   - identify_goal
   - identify_business_rules

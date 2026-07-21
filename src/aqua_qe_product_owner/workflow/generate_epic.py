@@ -1,4 +1,5 @@
 from ..models import AcceptanceCriteria, Epic, StoryStatus, UnresolvedItem, UserStory
+from ..skills.extract_prd_context import extract_prd_context
 from ..skills.extract_requirements import extract_requirements
 from ..skills.generate_epic_metadata import generate_epic_metadata
 from ..skills.generate_story import generate_story
@@ -25,12 +26,18 @@ def finalize_epic(epic: Epic) -> Epic:
 
 
 def generate_epic_shape(texto: str) -> Epic:
-    """Extrai os requisitos e define o Epic (titulo/objetivo/escopo/valor/criterios) a partir da fonte, antes de gerar qualquer User Story.
+    """Extrai os requisitos e o contexto do PRD, e define o Epic (titulo/objetivo/escopo/valor/criterios) a partir da fonte, antes de gerar qualquer User Story.
+
+    epic.prd_context preserva a parte do PRD que não é requisito funcional
+    (visão, requisitos não funcionais, restrições, critérios de sucesso, riscos,
+    dependências) — hoje descartada após a extração, mas necessária para
+    rastreabilidade completa do PRD (ver docs/standards/prd_standard.md).
 
     O status reflete apenas o checklist automático (validate_epic) — review_epic
     avalia coerência com as stories agrupadas, que ainda não existem neste ponto.
     """
     requisitos = extract_requirements(texto)
+    prd_context = extract_prd_context(texto)
     metadados = generate_epic_metadata(texto, requisitos)
     criterios = [
         AcceptanceCriteria(
@@ -51,6 +58,7 @@ def generate_epic_shape(texto: str) -> Epic:
         value=metadados.get("valor", ""),
         acceptance_criteria=criterios,
         requirements=requisitos,
+        prd_context=prd_context,
     )
     epic.status = (
         StoryStatus.DRAFT_VALIDATED if validate_epic(epic) else StoryStatus.PENDING_CLARIFICATION

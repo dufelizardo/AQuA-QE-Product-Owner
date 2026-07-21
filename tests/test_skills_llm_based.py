@@ -1,4 +1,5 @@
 from aqua_qe_product_owner.models import AcceptanceCriteria, BusinessRule, Requirement, UserStory
+from aqua_qe_product_owner.skills import extract_prd_context as extract_prd_context_module
 from aqua_qe_product_owner.skills import extract_requirements as extract_requirements_module
 from aqua_qe_product_owner.skills import generate_story as generate_story_module
 from aqua_qe_product_owner.skills import identify_actor as identify_actor_module
@@ -19,6 +20,50 @@ def test_extract_requirements_maps_json_to_models(monkeypatch):
     resultado = extract_requirements_module.extract_requirements("texto")
 
     assert resultado == [Requirement(id="REQ-001", text="requisito 1", source_reference="trecho 1")]
+
+
+def test_extract_prd_context_maps_json_to_model(monkeypatch):
+    monkeypatch.setattr(
+        extract_prd_context_module,
+        "complete_json",
+        lambda prompt, system="", model=None: {
+            "visao": "visao do produto",
+            "problema": "problema de negocio",
+            "objetivos": ["objetivo 1"],
+            "publico_alvo": "clientes pessoa fisica",
+            "requisitos_nao_funcionais": ["responder em menos de 2s"],
+            "restricoes": ["so app mobile"],
+            "criterios_sucesso": ["90% de conclusao"],
+            "riscos": ["indisponibilidade do provedor de pagamento"],
+            "dependencias": ["servico de KYC"],
+        },
+    )
+
+    contexto = extract_prd_context_module.extract_prd_context("texto")
+
+    assert contexto.vision == "visao do produto"
+    assert contexto.problem == "problema de negocio"
+    assert contexto.objectives == ["objetivo 1"]
+    assert contexto.target_audience == "clientes pessoa fisica"
+    assert contexto.non_functional_requirements == ["responder em menos de 2s"]
+    assert contexto.constraints == ["so app mobile"]
+    assert contexto.success_criteria == ["90% de conclusao"]
+    assert contexto.risks == ["indisponibilidade do provedor de pagamento"]
+    assert contexto.dependencies == ["servico de KYC"]
+
+
+def test_extract_prd_context_defaults_to_empty_when_llm_omits_fields(monkeypatch):
+    monkeypatch.setattr(
+        extract_prd_context_module,
+        "complete_json",
+        lambda prompt, system="", model=None: {},
+    )
+
+    contexto = extract_prd_context_module.extract_prd_context("texto")
+
+    assert contexto.vision == ""
+    assert contexto.objectives == []
+    assert contexto.non_functional_requirements == []
 
 
 def test_identify_actor_returns_empty_when_llm_finds_none(monkeypatch):

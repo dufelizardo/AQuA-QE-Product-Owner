@@ -2,7 +2,7 @@
 
 > Documentação das skills implementadas em `../../src/aqua_qe_product_owner/skills/`, no formato definido em `../standards/skill_standard.md`. Ordem conforme `agent_manifest.yaml`. Tipos de entrada/saída referem-se às estruturas de `../../src/aqua_qe_product_owner/models/`.
 >
-> `extract_requirements`, `identify_actor`, `identify_goal`, `identify_business_rules`, `generate_story`, `generate_clarifying_questions`, `refine_story` e `generate_epic_metadata` usam um LLM local via Ollama (`../../src/aqua_qe_product_owner/services/llm_service.py`, modelo configurável por `OLLAMA_MODEL`, padrão `mistral`). `validate_story`, `validate_epic` e `diff_story_versions`/`validate_traceability` são Python puro, sem LLM (ver `evaluation.md`). `review_story` e `review_epic` usam um segundo LLM, diferente do gerador (`OLLAMA_REVIEW_MODEL`, padrão `phi4`), como revisor independente (LLM-como-juiz). `retrieve_chunks` usa embedding local (`services/embedding_service.py`, modelo `bge-m3`) e um Qdrant embutido/local (`services/rag_service.py`, sem servidor externo). `read_jira_issue`, `update_jira_issue`, `create_jira_epic` e `create_jira_story` usam a API REST do Jira Cloud (`services/jira_service.py`) — as três últimas só são chamadas após aceitação humana explícita no CLI (`run.py`), nunca automaticamente. `read_confluence_page` usa a API REST do Confluence Cloud (`services/confluence_service.py`), reaproveitando as mesmas credenciais do Jira (mesma conta Atlassian).
+> `extract_requirements`, `extract_prd_context`, `identify_actor`, `identify_goal`, `identify_business_rules`, `generate_story`, `generate_clarifying_questions`, `refine_story` e `generate_epic_metadata` usam um LLM local via Ollama (`../../src/aqua_qe_product_owner/services/llm_service.py`, modelo configurável por `OLLAMA_MODEL`, padrão `mistral`). `validate_story`, `validate_epic` e `diff_story_versions`/`validate_traceability` são Python puro, sem LLM (ver `evaluation.md`). `review_story` e `review_epic` usam um segundo LLM, diferente do gerador (`OLLAMA_REVIEW_MODEL`, padrão `phi4`), como revisor independente (LLM-como-juiz). `retrieve_chunks` usa embedding local (`services/embedding_service.py`, modelo `bge-m3`) e um Qdrant embutido/local (`services/rag_service.py`, sem servidor externo). `read_jira_issue`, `update_jira_issue`, `create_jira_epic` e `create_jira_story` usam a API REST do Jira Cloud (`services/jira_service.py`) — as três últimas só são chamadas após aceitação humana explícita no CLI (`run.py`), nunca automaticamente. `read_confluence_page` usa a API REST do Confluence Cloud (`services/confluence_service.py`), reaproveitando as mesmas credenciais do Jira (mesma conta Atlassian).
 
 ## read_text_file
 
@@ -48,6 +48,15 @@
 - **Efeitos colaterais**: chamada ao LLM local (`llm_service`).
 - **Erros esperados**: texto sem requisitos identificáveis (retorna lista vazia); resposta do LLM não é JSON válido (`ValueError`).
 - **Dependências**: geralmente consome a saída de `read_text_file` (ou o texto de chat, recebido diretamente).
+
+## extract_prd_context
+
+- **Descrição**: extrai o conteúdo do PRD além dos requisitos funcionais — visão, problema, objetivos, público-alvo, requisitos não funcionais, restrições, critérios de sucesso, riscos e dependências (ver `../standards/prd_standard.md`) — para que essa informação não seja descartada após `extract_requirements` (fecha uma lacuna de rastreabilidade: hoje só os requisitos funcionais sobrevivem ao Épico gerado).
+- **Entrada**: `texto: str` — fonte completa.
+- **Saída**: `PRDContext` — todos os campos opcionais (string/lista vazia quando não identificável, GR-1).
+- **Efeitos colaterais**: chamada ao LLM local (`llm_service`).
+- **Erros esperados**: resposta do LLM não é JSON válido (`ValueError`).
+- **Dependências**: nenhuma outra skill; chamada por `workflow/generate_epic.py::generate_epic_shape`, junto de `extract_requirements`, antes de qualquer User Story ser gerada.
 
 ## identify_actor
 

@@ -63,6 +63,7 @@ Em modo lote, o mesmo padrão se repete em nível de Épico, mas em **duas fases
 ```
 Entrada completa (.txt/Markdown/Confluence)
    → extract_requirements
+   → extract_prd_context (visão, requisitos não funcionais, riscos, critérios de sucesso, restrições, dependências)
    → generate_epic_metadata (a partir do texto + requisitos, SEM nenhuma story ainda)
    → validate_epic
    → [checkpoint humano] "Continuar e gerar as User Stories deste Épico?"
@@ -75,17 +76,19 @@ Entrada completa (.txt/Markdown/Confluence)
 
 `generate_epic_metadata` depende apenas do texto de origem e dos requisitos extraídos — nunca das stories, que ainda não existem nesse ponto. Isso permite ao humano rejeitar ou pedir ajuste no Épico (título/objetivo/escopo/valor) **antes** de qualquer User Story ser gerada, evitando o desperdício de gerar um lote inteiro de stories sob um Épico com o escopo errado. Só depois que as stories existem é que `review_epic` consegue avaliar coerência real entre o objetivo do Épico e o que as stories entregam — por isso a revisão do Épico acontece em duas etapas: `validate_epic` (checklist automático, roda logo após a definição do Épico) e `review_epic` (LLM revisor, roda só depois das stories geradas).
 
+`extract_prd_context` fecha uma lacuna de rastreabilidade real: um PRD típico (`docs/standards/prd_standard.md`) contém muito mais do que requisitos funcionais — visão, público-alvo, requisitos não funcionais, restrições, critérios de sucesso, riscos, dependências. Antes, só o texto bruto e a lista de requisitos funcionais sobreviviam ao processamento; todo esse outro conteúdo era lido pelo LLM mas nunca estruturado nem preservado. `epic.prd_context` guarda essa informação vinculada ao Épico, sem introduzir nenhuma camada nova de processo — apenas preserva o que já era lido.
+
 Camadas do código (`src/aqua_qe_product_owner/`):
 
-- **`models/`** — estruturas de dados: `UserStory`, `Epic` (com `UnresolvedItem`), `AcceptanceCriteria`, `BusinessRule`, `Actor`, `Requirement`, e o enum `StoryStatus` (`draft_validated` / `pending_clarification` / `accepted`).
-- **`skills/`** — 22 funções, cada uma com um único efeito colateral e uma única responsabilidade (ver seção 5).
+- **`models/`** — estruturas de dados: `UserStory`, `Epic` (com `UnresolvedItem`), `AcceptanceCriteria`, `BusinessRule`, `Actor`, `Requirement`, `PRDContext`, e o enum `StoryStatus` (`draft_validated` / `pending_clarification` / `accepted`).
+- **`skills/`** — 23 funções, cada uma com um único efeito colateral e uma única responsabilidade (ver seção 5).
 - **`workflow/`** — orquestração da sequência de skills por caso de uso: `generate_user_story.py` (`finalize_story`), `generate_epic.py` (`generate_epic_shape` → define o Épico; `generate_epic_stories` → divide em User Stories e finaliza; `generate_epic` → wrapper de conveniência que encadeia as duas, sem checkpoint humano), `generate_acceptance.py`, `refine_story.py`.
 - **`orchestrator/product_owner.py`** — ponto de entrada único (`handle_request(entrada, modo)`), decide entre modo `"unitario"` e `"lote"`.
 - **`services/`** — integrações externas, introduzidas incrementalmente, uma por consumidor real: `llm_service` (Ollama), `embedding_service` (Ollama), `rag_service` (Qdrant embarcado), `jira_service` e `confluence_service` (REST API + httpx).
 
 Deliberadamente **não existe** uma camada de `Feature` entre Épico e User Story no código (só como template em `knowledge/templates/feature.md`). A avaliação registrada no projeto concluiu que essa camada tem valor real, mas custo desproporcional para o volume de PRDs testados até agora — fica para quando um PRD grande o suficiente justificar o agrupamento, em vez de ser construída especulativamente.
 
-## 5. As 22 skills
+## 5. As 23 skills
 
 Skills sem LLM (Python puro, determinísticas):
 
@@ -95,7 +98,7 @@ Skills sem LLM (Python puro, determinísticas):
 
 Skills com LLM gerador (`OLLAMA_MODEL`, padrão `mistral`):
 
-- `extract_requirements`, `identify_actor`, `identify_goal`, `identify_business_rules`, `generate_story`, `generate_clarifying_questions`, `refine_story`, `generate_epic_metadata`.
+- `extract_requirements`, `extract_prd_context`, `identify_actor`, `identify_goal`, `identify_business_rules`, `generate_story`, `generate_clarifying_questions`, `refine_story`, `generate_epic_metadata`.
 
 Skills com LLM revisor independente (`OLLAMA_REVIEW_MODEL`, padrão `phi4` — deliberadamente um modelo diferente do gerador, para mitigar *self-preference bias*):
 
@@ -150,7 +153,7 @@ Todas as operações de **escrita** exigem aceitação humana explícita antes d
 
 ## 10. Qualidade e cobertura de testes
 
-71 testes automatizados cobrem todos os módulos implementados (88% de cobertura de linha), todos com chamadas a Ollama/Jira/Confluence mockadas — rápidos, determinísticos, sem dependência de infraestrutura externa para rodar em CI. A avaliação do agente em produção combina três camadas que nunca se substituem (`docs/agent/evaluation.md`):
+73 testes automatizados cobrem todos os módulos implementados (88% de cobertura de linha), todos com chamadas a Ollama/Jira/Confluence mockadas — rápidos, determinísticos, sem dependência de infraestrutura externa para rodar em CI. A avaliação do agente em produção combina três camadas que nunca se substituem (`docs/agent/evaluation.md`):
 
 1. Checklist automático (`validate_story`/`validate_epic`) — sem LLM.
 2. LLM-como-juiz (`review_story`/`review_epic`) — modelo diferente do gerador.

@@ -1,6 +1,6 @@
 # Output Schema
 
-> Estrutura de dados retornada por `generate_story` e exportada por `export_markdown`, alinhada a `../../knowledge/templates/user_story.md`. Implementada como dataclasses reais em `../../src/aqua_qe_product_owner/models/` (`UserStory`, `AcceptanceCriteria`, `BusinessRule`, `Epic`, `UnresolvedItem`) — o JSON abaixo é a representação conceitual; `business_rules` na implementação é `list[BusinessRule]` (objetos com `id`/`description`/`source_reference`), não strings soltas.
+> Estrutura de dados retornada por `generate_story` e exportada por `export_markdown`, alinhada a `../../knowledge/templates/user_story.md`. Implementada como dataclasses reais em `../../src/aqua_qe_product_owner/models/` (`UserStory`, `AcceptanceCriteria`, `BusinessRule`, `Epic`, `UnresolvedItem`, `PRDContext`) — o JSON abaixo é a representação conceitual; `business_rules` na implementação é `list[BusinessRule]` (objetos com `id`/`description`/`source_reference`), não strings soltas.
 
 ## Schema de uma User Story (modo unitário)
 
@@ -44,6 +44,17 @@
     "value": "<string — valor de negócio, gerado por generate_epic_metadata>",
     "acceptance_criteria": ["<mesma estrutura Given-When-Then da User Story, em nível de Épico>"],
     "requirements": ["<Requirement extraído da fonte que originou o Épico — ver extract_requirements>"],
+    "prd_context": {
+      "vision": "<string, opcional>",
+      "problem": "<string, opcional>",
+      "objectives": ["<opcional>"],
+      "target_audience": "<string, opcional>",
+      "non_functional_requirements": ["<opcional>"],
+      "constraints": ["<opcional>"],
+      "success_criteria": ["<opcional>"],
+      "risks": ["<opcional>"],
+      "dependencies": ["<opcional>"]
+    },
     "status": "draft_validated | pending_clarification | accepted",
     "review_notes": ["<apontamento do revisor (review_epic), se houver>"]
   },
@@ -56,6 +67,8 @@
   ]
 }
 ```
+
+`prd_context` (`extract_prd_context`, ver `skills.md`) preserva a parte do PRD de origem que não é requisito funcional — visão, problema, objetivos, público-alvo, requisitos não funcionais, restrições, critérios de sucesso, riscos e dependências —, hoje descartada após a extração dos requisitos funcionais. Todos os campos são opcionais (string ou lista vazia quando não identificável, conforme GR-1).
 
 O Epic passa pelo mesmo ciclo `validate_epic` + `review_epic` (`workflow/generate_epic.py:finalize_epic`) que a User Story passa em `validate_story`/`review_story` — mesmos valores de `status` descritos abaixo, aplicados ao Épico como um todo. Antes do refinamento por story, o CLI roda `validate_traceability(epic)` (ver `skills.md`), verificando duplicidade entre stories, stories sem valor de negócio e requisitos órfãos.
 

@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 
 from .acceptance_criteria import AcceptanceCriteria
+from .prd_context import PRDContext
 from .requirement import Requirement
 from .status import StoryStatus
 from .user_story import UserStory
@@ -27,5 +28,6 @@ class Epic:
     stories: list[UserStory] = field(default_factory=list)
     unresolved_items: list[UnresolvedItem] = field(default_factory=list)
     requirements: list[Requirement] = field(default_factory=list)
+    prd_context: PRDContext | None = None
     status: StoryStatus = StoryStatus.PENDING_CLARIFICATION
     review_notes: list[str] = field(default_factory=list)
