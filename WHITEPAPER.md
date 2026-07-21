@@ -58,13 +58,28 @@ Entrada (.txt/Markdown/chat/Jira/Confluence)
    → export_markdown / update_jira_issue
 ```
 
-O mesmo padrão (**Generate → Validate → Review → Refine → Approve**) se repete em nível de Épico (`generate_epic_metadata` → `validate_epic` → `review_epic`), com uma etapa adicional de **Traceability Validation** (`validate_traceability`) antes do refinamento por story, verificando stories duplicadas, stories sem valor de negócio associado e requisitos órfãos (extraídos da fonte mas que não viraram nem story nem item pendente).
+Em modo lote, o mesmo padrão se repete em nível de Épico, mas em **duas fases**, não uma só — decisão de arquitetura que evita gastar o processamento caro (identificação de ator/objetivo/regras + geração + validação + revisão de cada User Story) antes de o Épico em si estar definido:
+
+```
+Entrada completa (.txt/Markdown/Confluence)
+   → extract_requirements
+   → generate_epic_metadata (a partir do texto + requisitos, SEM nenhuma story ainda)
+   → validate_epic
+   → [checkpoint humano] "Continuar e gerar as User Stories deste Épico?"
+   → generate_epic_stories: para cada requisito → generate_story → validate_story → review_story
+   → validate_traceability (stories duplicadas, sem valor, requisitos órfãos)
+   → review_epic (agora com as stories existentes, avalia coerência real com o Épico)
+   → refinamento humano-no-loop por story reprovada
+   → aceite humano final
+```
+
+`generate_epic_metadata` depende apenas do texto de origem e dos requisitos extraídos — nunca das stories, que ainda não existem nesse ponto. Isso permite ao humano rejeitar ou pedir ajuste no Épico (título/objetivo/escopo/valor) **antes** de qualquer User Story ser gerada, evitando o desperdício de gerar um lote inteiro de stories sob um Épico com o escopo errado. Só depois que as stories existem é que `review_epic` consegue avaliar coerência real entre o objetivo do Épico e o que as stories entregam — por isso a revisão do Épico acontece em duas etapas: `validate_epic` (checklist automático, roda logo após a definição do Épico) e `review_epic` (LLM revisor, roda só depois das stories geradas).
 
 Camadas do código (`src/aqua_qe_product_owner/`):
 
 - **`models/`** — estruturas de dados: `UserStory`, `Epic` (com `UnresolvedItem`), `AcceptanceCriteria`, `BusinessRule`, `Actor`, `Requirement`, e o enum `StoryStatus` (`draft_validated` / `pending_clarification` / `accepted`).
 - **`skills/`** — 22 funções, cada uma com um único efeito colateral e uma única responsabilidade (ver seção 5).
-- **`workflow/`** — orquestração da sequência de skills por caso de uso: `generate_user_story.py` (`finalize_story`), `generate_epic.py` (`finalize_epic`), `generate_acceptance.py`, `refine_story.py`.
+- **`workflow/`** — orquestração da sequência de skills por caso de uso: `generate_user_story.py` (`finalize_story`), `generate_epic.py` (`generate_epic_shape` → define o Épico; `generate_epic_stories` → divide em User Stories e finaliza; `generate_epic` → wrapper de conveniência que encadeia as duas, sem checkpoint humano), `generate_acceptance.py`, `refine_story.py`.
 - **`orchestrator/product_owner.py`** — ponto de entrada único (`handle_request(entrada, modo)`), decide entre modo `"unitario"` e `"lote"`.
 - **`services/`** — integrações externas, introduzidas incrementalmente, uma por consumidor real: `llm_service` (Ollama), `embedding_service` (Ollama), `rag_service` (Qdrant embarcado), `jira_service` e `confluence_service` (REST API + httpx).
 
@@ -111,10 +126,12 @@ A maior parte dos agentes de geração de conteúdo trata "revisão reprovada" c
 
 Esse desenho foi validado ao vivo em dois testes reais: um PRD informal sobre "Sistema de Agendamento de Consultas" (Épico completo com 6 User Stories, refinamento interativo ponta a ponta, criação real no Jira) e um PRD formal em uma página real do Confluence Cloud do usuário.
 
+Importante: esse ciclo não é só um portão de aprovação. A resposta humana a cada pergunta gerada é uma **oportunidade real de trabalho conjunto** — o humano não está apenas corrigindo um erro apontado, está melhorando a escrita da história com contexto que só ele tem (regras de negócio implícitas, decisões de escopo, casos de borda que o texto de origem não deixava claro). O LLM estrutura a pergunta certa; quem melhora a história é a resposta humana.
+
 ## 7. Modos de operação
 
 - **Unitário** (`--modo unitario`) — uma única User Story por execução, com possibilidade de interação próxima a cada etapa. Entrada via `--arquivo`, `--texto` ou `--jira`.
-- **Lote/Épico** (`--modo lote`) — processa a fonte inteira: `generate_epic_metadata` define título/objetivo/escopo/valor/critérios do Épico a partir das stories já geradas; itens ambíguos viram `unresolved_items` sem travar o restante do lote; `validate_traceability` roda antes do refinamento por story. Entrada via `--arquivo` ou `--confluence`.
+- **Lote/Épico** (`--modo lote`) — em duas fases: primeiro `generate_epic_metadata` define título/objetivo/escopo/valor/critérios do Épico a partir do texto de origem e dos requisitos extraídos (`extract_requirements`) — **sem gerar nenhuma User Story ainda** — e `validate_epic` confere o checklist automático; o CLI então pergunta ao usuário se deve continuar. Só após confirmação, o Épico é dividido em User Stories (uma por requisito), cada uma passando pelo pipeline completo do modo unitário; itens ambíguos viram `unresolved_items` sem travar o restante do lote; `validate_traceability` e `review_epic` (agora com as stories existentes) rodam antes do refinamento por story. Entrada via `--arquivo` ou `--confluence`.
 - **`--criar-jira`** (modo lote) — após aceitação humana explícita, cria o ticket de Épico e cada User Story como ticket filho no Jira Cloud (vínculo `parent` simples, assume projeto *team-managed*).
 
 ## 8. Integrações reais
@@ -133,7 +150,7 @@ Todas as operações de **escrita** exigem aceitação humana explícita antes d
 
 ## 10. Qualidade e cobertura de testes
 
-68 testes automatizados cobrem todos os módulos implementados (88% de cobertura de linha), todos com chamadas a Ollama/Jira/Confluence mockadas — rápidos, determinísticos, sem dependência de infraestrutura externa para rodar em CI. A avaliação do agente em produção combina três camadas que nunca se substituem (`docs/agent/evaluation.md`):
+71 testes automatizados cobrem todos os módulos implementados (88% de cobertura de linha), todos com chamadas a Ollama/Jira/Confluence mockadas — rápidos, determinísticos, sem dependência de infraestrutura externa para rodar em CI. A avaliação do agente em produção combina três camadas que nunca se substituem (`docs/agent/evaluation.md`):
 
 1. Checklist automático (`validate_story`/`validate_epic`) — sem LLM.
 2. LLM-como-juiz (`review_story`/`review_epic`) — modelo diferente do gerador.

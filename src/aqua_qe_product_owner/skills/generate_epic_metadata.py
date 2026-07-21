@@ -1,22 +1,22 @@
-from ..models import UserStory
+from ..models import Requirement
 from ..services.llm_service import complete_json
 
 _SYSTEM = (
     "Você define o título, objetivo, escopo, valor de negócio e critérios de "
-    "aceitação de alto nível de um Épico, a partir do texto de origem e das "
-    "User Stories já geradas dentro dele. Baseie-se apenas nas informações "
+    "aceitação de alto nível de um Épico, a partir do texto de origem e dos "
+    "requisitos candidatos extraídos dele. Baseie-se apenas nas informações "
     "fornecidas; nunca invente escopo ou valor que não seja sustentado pelo "
-    "texto ou pelas stories. Responda sempre em português, mesmo que o texto "
-    "de origem contenha trechos em outro idioma."
+    "texto ou pelos requisitos. Responda sempre em português, mesmo que o "
+    "texto de origem contenha trechos em outro idioma."
 )
 
 
-def generate_epic_metadata(texto: str, stories: list[UserStory]) -> dict:
-    """Gera título, objetivo, escopo, valor e critérios de aceitação de um Épico a partir da fonte e das User Stories geradas."""
-    resumo_stories = [{"titulo": s.title, "objetivo": s.goal} for s in stories]
+def generate_epic_metadata(texto: str, requisitos: list[Requirement]) -> dict:
+    """Gera título, objetivo, escopo, valor e critérios de aceitação de um Épico a partir da fonte e dos requisitos extraídos, antes de qualquer User Story ser gerada."""
+    resumo_requisitos = [{"id": r.id, "texto": r.text} for r in requisitos]
     prompt = (
         f"Texto de origem:\n{texto}\n\n"
-        f"User Stories já geradas neste Épico: {resumo_stories}\n\n"
+        f"Requisitos candidatos extraídos deste texto: {resumo_requisitos}\n\n"
         "Defina o título, objetivo, escopo e valor de negócio deste Épico, em "
         "português.\n\n"
         "Depois, escreva de 2 a 4 critérios de aceitação de alto nível no "

@@ -132,12 +132,12 @@
 
 ## generate_epic_metadata
 
-- **Descrição**: define título, objetivo, escopo, valor de negócio e critérios de aceitação de alto nível de um Épico, a partir da fonte completa e das User Stories já geradas dentro dele (fecha a lacuna do `Epic` antes vazio, ver `system_design.md`).
-- **Entrada**: `texto: str` (fonte completa), `stories: list[UserStory]` (já geradas por `generate_epic`).
+- **Descrição**: define título, objetivo, escopo, valor de negócio e critérios de aceitação de alto nível de um Épico, a partir da fonte completa e dos requisitos candidatos extraídos dela — roda **antes** de qualquer User Story ser gerada (ver `workflow/generate_epic.py::generate_epic_shape`), para que o Épico possa ser validado com o humano sem pagar o custo de gerar todas as stories primeiro.
+- **Entrada**: `texto: str` (fonte completa), `requisitos: list[Requirement]` (já extraídos por `extract_requirements`).
 - **Saída**: `dict` no formato `{"titulo", "objetivo", "escopo", "valor", "criterios_aceitacao": [...]}`.
 - **Efeitos colaterais**: chamada ao LLM local (`llm_service`).
 - **Erros esperados**: resposta do LLM não é JSON válido (`ValueError`).
-- **Dependências**: consome as stories já geradas por `workflow/generate_epic.py` (título/escopo devem refletir o conjunto real, não ser inventados isoladamente).
+- **Dependências**: consome os requisitos extraídos por `extract_requirements` — não depende de nenhuma User Story já gerada.
 
 ## validate_epic
 

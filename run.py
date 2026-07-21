@@ -25,6 +25,10 @@ from aqua_qe_product_owner.skills.read_jira_issue import read_jira_issue  # noqa
 from aqua_qe_product_owner.skills.read_text_file import read_text_file  # noqa: E402
 from aqua_qe_product_owner.skills.update_jira_issue import update_jira_issue  # noqa: E402
 from aqua_qe_product_owner.skills.validate_traceability import validate_traceability  # noqa: E402
+from aqua_qe_product_owner.workflow.generate_epic import (  # noqa: E402
+    generate_epic_shape,
+    generate_epic_stories,
+)
 from aqua_qe_product_owner.workflow.refine_story import refine_user_story  # noqa: E402
 
 
@@ -184,8 +188,26 @@ def _criar_epico_no_jira(epic: Epic) -> None:
         print(f"  - {story.id} -> {story_key}")
 
 
+def _imprimir_epic_shape(epic: Epic) -> None:
+    print("\n--- Épico (escopo definido a partir do PRD, antes de gerar as Stories) ---")
+    aprovado = epic.status == StoryStatus.DRAFT_VALIDATED
+    print(f"checklist automático (validate_epic): {'aprovado' if aprovado else 'reprovado'}")
+    print(f"título: {epic.title}")
+    print(f"objetivo: {epic.objective}")
+    print(f"escopo: {epic.scope}")
+    print(f"valor: {epic.value}")
+    print(f"requisitos extraídos: {len(epic.requirements)}")
+
+
 def _rodar_lote(texto: str, saida: str | None, refinar: bool, criar_jira: bool) -> None:
-    epic = handle_request(texto, modo="lote")
+    epic = generate_epic_shape(texto)
+    _imprimir_epic_shape(epic)
+
+    if not _perguntar_sim_nao("\nContinuar e gerar as User Stories deste Épico?"):
+        print("Execução interrompida: nenhuma User Story foi gerada.")
+        return
+
+    epic = generate_epic_stories(epic)
     _imprimir_epic(epic)
     _imprimir_traceability(epic)
 

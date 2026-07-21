@@ -21,7 +21,7 @@ Pipeline de uma única User Story: `Generate → Validate → Review → Refine 
 
 ![Fluxo modo lote (Épico)](svg/03-fluxo-modo-lote-epico.svg)
 
-Mesmo pipeline aplicado a cada requisito extraído da fonte completa, seguido da geração e revisão do Épico (`generate_epic_metadata → validate_epic → review_epic`) e da checagem de consistência entre artefatos (`validate_traceability`).
+Em duas fases: primeiro `generate_epic_metadata` + `validate_epic` definem o Épico só a partir do texto e dos requisitos extraídos — **sem nenhuma story ainda** — e o usuário decide se quer continuar; só depois o mesmo pipeline do Diagrama 2 é aplicado a cada requisito, seguido de `validate_traceability` e `review_epic` (agora com as stories existentes, para avaliar coerência real).
 
 ## 4 — Ciclo de refinamento humano-no-loop
 

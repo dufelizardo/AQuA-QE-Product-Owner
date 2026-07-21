@@ -58,13 +58,28 @@ Input (.txt/Markdown/chat/Jira/Confluence)
    → export_markdown / update_jira_issue
 ```
 
-The same pattern (**Generate → Validate → Review → Refine → Approve**) repeats at the Epic level (`generate_epic_metadata` → `validate_epic` → `review_epic`), with an additional **Traceability Validation** step (`validate_traceability`) before per-story refinement, checking for duplicated stories, stories with no associated business value, and orphan requirements (extracted from the source but that became neither a story nor an unresolved item).
+In batch mode, the same pattern repeats at the Epic level, but in **two phases**, not one — an architectural decision that avoids spending the expensive processing (identifying actor/goal/rules + generating + validating + reviewing each User Story) before the Epic itself is defined:
+
+```
+Full input (.txt/Markdown/Confluence)
+   → extract_requirements
+   → generate_epic_metadata (from the text + requirements, with NO story yet)
+   → validate_epic
+   → [human checkpoint] "Continue and generate this Epic's User Stories?"
+   → generate_epic_stories: for each requirement → generate_story → validate_story → review_story
+   → validate_traceability (duplicated stories, missing value, orphan requirements)
+   → review_epic (now with the stories in place, evaluates real coherence with the Epic)
+   → interactive human refinement for each rejected story
+   → final human acceptance
+```
+
+`generate_epic_metadata` depends only on the source text and the extracted requirements — never on the stories, which don't exist yet at that point. This lets the human reject or request changes to the Epic (title/objective/scope/value) **before** any User Story is generated, avoiding the waste of generating a whole batch of stories under an Epic with the wrong scope. Only once the stories exist can `review_epic` meaningfully evaluate coherence between the Epic's objective and what the stories actually deliver — which is why the Epic review happens in two steps: `validate_epic` (automatic checklist, runs right after the Epic is defined) and `review_epic` (reviewer LLM, runs only after the stories are generated).
 
 Code layers (`src/aqua_qe_product_owner/`):
 
 - **`models/`** — data structures: `UserStory`, `Epic` (with `UnresolvedItem`), `AcceptanceCriteria`, `BusinessRule`, `Actor`, `Requirement`, and the `StoryStatus` enum (`draft_validated` / `pending_clarification` / `accepted`).
 - **`skills/`** — 22 functions, each with a single side effect and a single responsibility (see section 5).
-- **`workflow/`** — orchestration of the skill sequence per use case: `generate_user_story.py` (`finalize_story`), `generate_epic.py` (`finalize_epic`), `generate_acceptance.py`, `refine_story.py`.
+- **`workflow/`** — orchestration of the skill sequence per use case: `generate_user_story.py` (`finalize_story`), `generate_epic.py` (`generate_epic_shape` → defines the Epic; `generate_epic_stories` → splits it into User Stories and finalizes it; `generate_epic` → convenience wrapper chaining both, with no human checkpoint), `generate_acceptance.py`, `refine_story.py`.
 - **`orchestrator/product_owner.py`** — single entry point (`handle_request(entrada, modo)`), decides between `"unitario"` (single) and `"lote"` (batch) mode.
 - **`services/`** — external integrations, introduced incrementally, one per real consumer: `llm_service` (Ollama), `embedding_service` (Ollama), `rag_service` (embedded Qdrant), `jira_service` and `confluence_service` (REST API + httpx).
 
@@ -111,10 +126,12 @@ Most content-generation agents treat a "review rejected" signal as a cue for the
 
 This design was validated live in two real tests: an informal PRD about a "Medical Appointment Scheduling System" (a full Epic with 6 User Stories, end-to-end interactive refinement, real Jira ticket creation) and a formal PRD on a real page of the user's Confluence Cloud.
 
+Importantly, this cycle isn't just an approval gate. The human's answer to each generated question is a genuine **opportunity for joint work** — the human isn't just fixing a flagged error, they're improving the story's writing with context only they have (implicit business rules, scope decisions, edge cases the source text left unclear). The LLM structures the right question; the human's answer is what actually improves the story.
+
 ## 7. Operating modes
 
 - **Single** (`--modo unitario`) — one User Story per run, with the possibility of close interaction at each step. Input via `--arquivo`, `--texto`, or `--jira`.
-- **Batch/Epic** (`--modo lote`) — processes the entire source: `generate_epic_metadata` defines the Epic's title/objective/scope/value/criteria from the stories already generated; ambiguous items become `unresolved_items` without blocking the rest of the batch; `validate_traceability` runs before per-story refinement. Input via `--arquivo` or `--confluence`.
+- **Batch/Epic** (`--modo lote`) — in two phases: first `generate_epic_metadata` defines the Epic's title/objective/scope/value/criteria from the source text and the extracted requirements (`extract_requirements`) — **without generating any User Story yet** — and `validate_epic` checks the automatic checklist; the CLI then asks the user whether to continue. Only after confirmation is the Epic split into User Stories (one per requirement), each going through the full single-mode pipeline; ambiguous items become `unresolved_items` without blocking the rest of the batch; `validate_traceability` and `review_epic` (now with the stories in place) run before per-story refinement. Input via `--arquivo` or `--confluence`.
 - **`--criar-jira`** (batch mode) — after explicit human acceptance, creates the Epic ticket and each User Story as a child ticket in Jira Cloud (simple `parent` link, assumes a *team-managed* project).
 
 ## 8. Real integrations
@@ -133,7 +150,7 @@ All **write** operations require explicit human acceptance before firing — the
 
 ## 10. Quality and test coverage
 
-68 automated tests cover every implemented module (88% line coverage), all with Ollama/Jira/Confluence calls mocked — fast, deterministic, no dependency on external infrastructure to run in CI. Evaluating the agent in production combines three layers that never substitute for one another (`docs/agent/evaluation.md`):
+71 automated tests cover every implemented module (88% line coverage), all with Ollama/Jira/Confluence calls mocked — fast, deterministic, no dependency on external infrastructure to run in CI. Evaluating the agent in production combines three layers that never substitute for one another (`docs/agent/evaluation.md`):
 
 1. Automatic checklist (`validate_story`/`validate_epic`) — no LLM.
 2. LLM-as-judge (`review_story`/`review_epic`) — a different model from the generator.

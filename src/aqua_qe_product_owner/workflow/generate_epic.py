@@ -24,14 +24,51 @@ def finalize_epic(epic: Epic) -> Epic:
     return epic
 
 
-def generate_epic(texto: str) -> Epic:
-    """Processa uma fonte completa em modo lote, gerando um Epic com as User Stories e itens não resolvidos."""
-    requisitos = extract_requirements(texto)
+def generate_epic_shape(texto: str) -> Epic:
+    """Extrai os requisitos e define o Epic (titulo/objetivo/escopo/valor/criterios) a partir da fonte, antes de gerar qualquer User Story.
 
+    O status reflete apenas o checklist automático (validate_epic) — review_epic
+    avalia coerência com as stories agrupadas, que ainda não existem neste ponto.
+    """
+    requisitos = extract_requirements(texto)
+    metadados = generate_epic_metadata(texto, requisitos)
+    criterios = [
+        AcceptanceCriteria(
+            id=f"AC-{i + 1:03d}",
+            scenario=criterio.get("cenario", ""),
+            given=criterio.get("dado", ""),
+            when=criterio.get("quando", ""),
+            then=criterio.get("entao", ""),
+        )
+        for i, criterio in enumerate(metadados.get("criterios_aceitacao", []))
+    ]
+
+    epic = Epic(
+        id="EPIC-001",
+        title=metadados.get("titulo", ""),
+        objective=metadados.get("objetivo", ""),
+        scope=metadados.get("escopo", ""),
+        value=metadados.get("valor", ""),
+        acceptance_criteria=criterios,
+        requirements=requisitos,
+    )
+    epic.status = (
+        StoryStatus.DRAFT_VALIDATED if validate_epic(epic) else StoryStatus.PENDING_CLARIFICATION
+    )
+    return epic
+
+
+def generate_epic_stories(epic: Epic) -> Epic:
+    """Divide o Epic em User Stories (uma por requisito já extraído em epic.requirements) e finaliza o Epic.
+
+    Ao final, aplica finalize_epic — agora com as stories geradas, review_epic
+    consegue avaliar coerência real entre o objetivo do Epic e o que as
+    stories entregam.
+    """
     stories: list[UserStory] = []
     unresolved: list[UnresolvedItem] = []
 
-    for i, requisito in enumerate(requisitos, start=1):
+    for i, requisito in enumerate(epic.requirements, start=1):
         texto_item = requisito.text
         ator = identify_actor(texto_item)
         objetivo = identify_goal(texto_item)
@@ -58,27 +95,16 @@ def generate_epic(texto: str) -> Epic:
         story = generate_story(ator, objetivo, contexto)
         stories.append(finalize_story(story))
 
-    metadados = generate_epic_metadata(texto, stories)
-    criterios = [
-        AcceptanceCriteria(
-            id=f"AC-{i + 1:03d}",
-            scenario=criterio.get("cenario", ""),
-            given=criterio.get("dado", ""),
-            when=criterio.get("quando", ""),
-            then=criterio.get("entao", ""),
-        )
-        for i, criterio in enumerate(metadados.get("criterios_aceitacao", []))
-    ]
-
-    epic = Epic(
-        id="EPIC-001",
-        title=metadados.get("titulo", ""),
-        objective=metadados.get("objetivo", ""),
-        scope=metadados.get("escopo", ""),
-        value=metadados.get("valor", ""),
-        acceptance_criteria=criterios,
-        stories=stories,
-        unresolved_items=unresolved,
-        requirements=requisitos,
-    )
+    epic.stories = stories
+    epic.unresolved_items = unresolved
     return finalize_epic(epic)
+
+
+def generate_epic(texto: str) -> Epic:
+    """Processa uma fonte completa em modo lote, gerando um Epic com as User Stories e itens não resolvidos.
+
+    Conveniência de uma chamada só (sem checkpoint humano intermediário) — para
+    o checkpoint humano entre a definição do Epic e a geração das stories, use
+    generate_epic_shape / generate_epic_stories separadamente (ver run.py).
+    """
+    return generate_epic_stories(generate_epic_shape(texto))
