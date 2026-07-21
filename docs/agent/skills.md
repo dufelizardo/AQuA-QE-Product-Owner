@@ -6,12 +6,30 @@
 
 ## read_text_file
 
-- **Descrição**: lê um arquivo de texto (`.txt` ou `.md`) e retorna seu conteúdo. Entrada via chat não passa por esta skill — chega como texto direto.
+- **Descrição**: lê um arquivo de texto (`.txt` ou `.md`) e retorna seu conteúdo. Entrada via chat não passa por esta skill — passa por `parse_chat_transcript`/`format_chat_transcript` (ver abaixo).
 - **Entrada**: `caminho: str` — caminho do arquivo `.txt` ou `.md`.
 - **Saída**: `str` — conteúdo do arquivo.
 - **Efeitos colaterais**: leitura de arquivo em disco.
 - **Erros esperados**: arquivo inexistente, ilegível ou com encoding inválido.
 - **Dependências**: nenhuma outra skill.
+
+## parse_chat_transcript
+
+- **Descrição**: separa uma transcrição de chat em mensagens por remetente (ex.: `"PO: ..."`, `"Dev: ..."`) — fecha a lacuna do tipo de entrada `chat`, que antes não tinha nenhuma skill própria (`run.py::_ler_entrada` só repassava o texto). O remetente é limitado a 1-3 palavras alfabéticas, para não confundir uma frase como `"O sistema deve responder em: 2 segundos"` com um remetente real. Linhas sem remetente reconhecível viram continuação da mensagem anterior. Se nenhuma linha tiver remetente identificável, retorna o texto inteiro como uma única mensagem sem remetente — comportamento idêntico ao de antes desta skill existir.
+- **Entrada**: `texto: str` — texto bruto vindo de `--texto` (chat).
+- **Saída**: `list[ChatMessage]` — uma ou mais mensagens, cada uma com `speaker`/`text`.
+- **Efeitos colaterais**: nenhum — Python puro (regex), sem LLM.
+- **Erros esperados**: nenhum.
+- **Dependências**: nenhuma outra skill; usada por `run.py::_ler_entrada` só no caminho `--texto`, nunca em `--arquivo`/`--jira`/`--confluence`.
+
+## format_chat_transcript
+
+- **Descrição**: reconstrói uma transcrição normalizada (`"Remetente: mensagem"` por parágrafo) a partir das mensagens de `parse_chat_transcript`. Para o caso de uma única mensagem sem remetente (fallback de `parse_chat_transcript`, quando a entrada não é uma transcrição de verdade), retorna o texto original sem nenhuma alteração.
+- **Entrada**: `mensagens: list[ChatMessage]`.
+- **Saída**: `str` — transcrição normalizada (ou o texto original inalterado, no caso de mensagem única sem remetente).
+- **Efeitos colaterais**: nenhum — Python puro, sem LLM.
+- **Erros esperados**: nenhum.
+- **Dependências**: consome a saída de `parse_chat_transcript`; o texto resultante alimenta o resto do pipeline normalmente (`extract_requirements`, `identify_actor`, etc.), como qualquer outra fonte de entrada.
 
 ## read_jira_issue
 

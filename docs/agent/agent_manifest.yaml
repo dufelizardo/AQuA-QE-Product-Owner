@@ -20,6 +20,8 @@ outputs:
 
 skills:
   - read_text_file
+  - parse_chat_transcript
+  - format_chat_transcript
   - read_jira_issue
   - read_confluence_page
   - retrieve_chunks

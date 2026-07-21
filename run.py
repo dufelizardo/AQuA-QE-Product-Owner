@@ -18,6 +18,7 @@ from aqua_qe_product_owner.skills.create_jira_epic import create_jira_epic  # no
 from aqua_qe_product_owner.skills.create_jira_story import create_jira_story  # noqa: E402
 from aqua_qe_product_owner.skills.diff_story_versions import diff_story_versions  # noqa: E402
 from aqua_qe_product_owner.skills.export_markdown import export_markdown  # noqa: E402
+from aqua_qe_product_owner.skills.format_chat_transcript import format_chat_transcript  # noqa: E402
 from aqua_qe_product_owner.skills.format_prd_markdown import format_prd_markdown  # noqa: E402
 from aqua_qe_product_owner.skills.generate_clarifying_questions import (  # noqa: E402
     generate_clarifying_questions,
@@ -25,6 +26,7 @@ from aqua_qe_product_owner.skills.generate_clarifying_questions import (  # noqa
 from aqua_qe_product_owner.skills.generate_prd_clarifying_questions import (  # noqa: E402
     generate_prd_clarifying_questions,
 )
+from aqua_qe_product_owner.skills.parse_chat_transcript import parse_chat_transcript  # noqa: E402
 from aqua_qe_product_owner.skills.read_confluence_page import read_confluence_page  # noqa: E402
 from aqua_qe_product_owner.skills.read_jira_issue import read_jira_issue  # noqa: E402
 from aqua_qe_product_owner.skills.read_text_file import read_text_file  # noqa: E402
@@ -48,7 +50,9 @@ def _ler_entrada(args: argparse.Namespace) -> str:
         return read_jira_issue(args.jira)
     if args.confluence:
         return read_confluence_page(args.confluence)
-    return args.texto
+    # chat (--texto): normaliza a transcrição (remetente por linha), quando houver;
+    # texto corrido sem remetentes volta inalterado (ver parse_chat_transcript).
+    return format_chat_transcript(parse_chat_transcript(args.texto))
 
 
 def _imprimir_story(story: UserStory) -> None:

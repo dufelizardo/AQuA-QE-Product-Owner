@@ -46,7 +46,7 @@ Esses guardrails viram regras formais e verificáveis (`RULE-001` a `RULE-006` e
 
 ```
 Entrada (.txt/Markdown/chat/Jira/Confluence)
-   → read_text_file / read_jira_issue / read_confluence_page
+   → read_text_file / parse_chat_transcript+format_chat_transcript (só chat) / read_jira_issue / read_confluence_page
    → extract_requirements
    → retrieve_chunks (RAG sobre knowledge/methodology/, quando relevante)
    → identify_actor / identify_goal / identify_business_rules
@@ -84,14 +84,14 @@ Entrada completa (.txt/Markdown/Confluence)
 Camadas do código (`src/aqua_qe_product_owner/`):
 
 - **`models/`** — estruturas de dados: `UserStory`, `Epic` (com `UnresolvedItem`), `AcceptanceCriteria`, `BusinessRule`, `Actor`, `Requirement`, `PRDContext`, `PRDDraft`, e o enum `StoryStatus` (`draft_validated` / `pending_clarification` / `accepted`).
-- **`skills/`** — 31 funções, cada uma com um único efeito colateral e uma única responsabilidade (ver seção 5).
+- **`skills/`** — 33 funções, cada uma com um único efeito colateral e uma única responsabilidade (ver seção 5).
 - **`workflow/`** — orquestração da sequência de skills por caso de uso: `generate_prd.py` (`generate_prd_draft` → gera o PRD a partir de uma ideia; `refine_prd_draft` → refina com respostas humanas), `generate_user_story.py` (`finalize_story`), `generate_epic.py` (`generate_epic_shape` → define o Épico; `generate_epic_stories` → divide em User Stories e finaliza; `generate_epic` → wrapper de conveniência que encadeia as duas, sem checkpoint humano), `generate_acceptance.py`, `refine_story.py`.
 - **`orchestrator/product_owner.py`** — ponto de entrada único (`handle_request(entrada, modo)`), decide entre modo `"unitario"` e `"lote"`.
 - **`services/`** — integrações externas, introduzidas incrementalmente, uma por consumidor real: `llm_service` (Ollama), `embedding_service` (Ollama), `rag_service` (Qdrant embarcado), `jira_service` e `confluence_service` (REST API + httpx).
 
 Deliberadamente **não existe** uma camada de `Feature` entre Épico e User Story no código (só como template em `knowledge/templates/feature.md`). A avaliação registrada no projeto concluiu que essa camada tem valor real, mas custo desproporcional para o volume de PRDs testados até agora — fica para quando um PRD grande o suficiente justificar o agrupamento, em vez de ser construída especulativamente.
 
-## 5. As 31 skills
+## 5. As 33 skills
 
 Skills sem LLM (Python puro, determinísticas):
 
@@ -159,7 +159,7 @@ Todas as operações de **escrita** exigem aceitação humana explícita antes d
 
 ## 10. Qualidade e cobertura de testes
 
-103 testes automatizados cobrem todos os módulos implementados (90% de cobertura de linha), todos com chamadas a Ollama/Jira/Confluence mockadas — rápidos, determinísticos, sem dependência de infraestrutura externa para rodar em CI. A avaliação do agente em produção combina três camadas que nunca se substituem (`docs/agent/evaluation.md`):
+113 testes automatizados cobrem todos os módulos implementados (91% de cobertura de linha), todos com chamadas a Ollama/Jira/Confluence mockadas — rápidos, determinísticos, sem dependência de infraestrutura externa para rodar em CI. A avaliação do agente em produção combina três camadas que nunca se substituem (`docs/agent/evaluation.md`):
 
 1. Checklist automático (`validate_story`/`validate_epic`) — sem LLM.
 2. LLM-como-juiz (`review_story`/`review_epic`) — modelo diferente do gerador.

@@ -46,7 +46,7 @@ These guardrails become formal, verifiable rules (`RULE-001` through `RULE-006` 
 
 ```
 Input (.txt/Markdown/chat/Jira/Confluence)
-   → read_text_file / read_jira_issue / read_confluence_page
+   → read_text_file / parse_chat_transcript+format_chat_transcript (chat only) / read_jira_issue / read_confluence_page
    → extract_requirements
    → retrieve_chunks (RAG over knowledge/methodology/, when relevant)
    → identify_actor / identify_goal / identify_business_rules
@@ -84,14 +84,14 @@ Full input (.txt/Markdown/Confluence)
 Code layers (`src/aqua_qe_product_owner/`):
 
 - **`models/`** — data structures: `UserStory`, `Epic` (with `UnresolvedItem`), `AcceptanceCriteria`, `BusinessRule`, `Actor`, `Requirement`, `PRDContext`, `PRDDraft`, and the `StoryStatus` enum (`draft_validated` / `pending_clarification` / `accepted`).
-- **`skills/`** — 31 functions, each with a single side effect and a single responsibility (see section 5).
+- **`skills/`** — 33 functions, each with a single side effect and a single responsibility (see section 5).
 - **`workflow/`** — orchestration of the skill sequence per use case: `generate_prd.py` (`generate_prd_draft` → generates the PRD from an idea; `refine_prd_draft` → refines it with human answers), `generate_user_story.py` (`finalize_story`), `generate_epic.py` (`generate_epic_shape` → defines the Epic; `generate_epic_stories` → splits it into User Stories and finalizes it; `generate_epic` → convenience wrapper chaining both, with no human checkpoint), `generate_acceptance.py`, `refine_story.py`.
 - **`orchestrator/product_owner.py`** — single entry point (`handle_request(entrada, modo)`), decides between `"unitario"` (single) and `"lote"` (batch) mode.
 - **`services/`** — external integrations, introduced incrementally, one per real consumer: `llm_service` (Ollama), `embedding_service` (Ollama), `rag_service` (embedded Qdrant), `jira_service` and `confluence_service` (REST API + httpx).
 
 There is deliberately **no** `Feature` layer between Epic and User Story in the code (it only exists as a template in `knowledge/templates/feature.md`). The evaluation recorded in the project concluded that this layer has real value, but a disproportionate cost for the volume of PRDs tested so far — it's deferred until a PRD large enough justifies the grouping, instead of being built speculatively.
 
-## 5. The 31 skills
+## 5. The 33 skills
 
 Skills with no LLM (pure Python, deterministic):
 
@@ -159,7 +159,7 @@ All **write** operations require explicit human acceptance before firing — the
 
 ## 10. Quality and test coverage
 
-103 automated tests cover every implemented module (90% line coverage), all with Ollama/Jira/Confluence calls mocked — fast, deterministic, no dependency on external infrastructure to run in CI. Evaluating the agent in production combines three layers that never substitute for one another (`docs/agent/evaluation.md`):
+113 automated tests cover every implemented module (91% line coverage), all with Ollama/Jira/Confluence calls mocked — fast, deterministic, no dependency on external infrastructure to run in CI. Evaluating the agent in production combines three layers that never substitute for one another (`docs/agent/evaluation.md`):
 
 1. Automatic checklist (`validate_story`/`validate_epic`) — no LLM.
 2. LLM-as-judge (`review_story`/`review_epic`) — a different model from the generator.
