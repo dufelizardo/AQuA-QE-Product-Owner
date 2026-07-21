@@ -3,6 +3,7 @@ from .actor import Actor
 from .business_rule import BusinessRule
 from .epic import Epic, UnresolvedItem
 from .prd_context import PRDContext
+from .prd_draft import PRDDraft
 from .requirement import Requirement
 from .status import StoryStatus
 from .user_story import UserStory
@@ -13,6 +14,7 @@ __all__ = [
     "BusinessRule",
     "Epic",
     "PRDContext",
+    "PRDDraft",
     "Requirement",
     "StoryStatus",
     "UnresolvedItem",

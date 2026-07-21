@@ -46,3 +46,50 @@ def test_get_page_text_extracts_title_and_body(monkeypatch):
 
     assert "Meu PRD" in resultado
     assert "Conteúdo da página." in resultado
+
+
+def test_texto_para_storage_wraps_lines_in_paragraphs_and_escapes_html():
+    resultado = confluence_service._texto_para_storage("Linha 1\n\nLinha & <2>")
+
+    assert resultado == "<p>Linha 1</p><p>Linha &amp; &lt;2&gt;</p>"
+
+
+def test_create_page_posts_expected_body_and_returns_id(monkeypatch):
+    monkeypatch.setenv("JIRA_BASE_URL", "https://example.atlassian.net")
+    monkeypatch.setenv("JIRA_EMAIL", "user@example.com")
+    monkeypatch.setenv("JIRA_API_TOKEN", "token")
+
+    captured = {}
+
+    def fake_post(url, auth=None, json=None, timeout=None):
+        captured.update(url=url, auth=auth, json=json)
+        return _FakeResponse({"id": "163841"})
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+
+    resultado = confluence_service.create_page("AQUAQE", "Titulo", "Corpo da pagina")
+
+    assert resultado == "163841"
+    assert captured["url"] == "https://example.atlassian.net/wiki/rest/api/content"
+    assert captured["json"]["space"] == {"key": "AQUAQE"}
+    assert captured["json"]["title"] == "Titulo"
+    assert captured["json"]["body"]["storage"]["value"] == "<p>Corpo da pagina</p>"
+    assert "ancestors" not in captured["json"]
+
+
+def test_create_page_includes_ancestors_when_parent_given(monkeypatch):
+    monkeypatch.setenv("JIRA_BASE_URL", "https://example.atlassian.net")
+    monkeypatch.setenv("JIRA_EMAIL", "user@example.com")
+    monkeypatch.setenv("JIRA_API_TOKEN", "token")
+
+    captured = {}
+
+    def fake_post(url, auth=None, json=None, timeout=None):
+        captured.update(json=json)
+        return _FakeResponse({"id": "163842"})
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+
+    confluence_service.create_page("AQUAQE", "Titulo", "Corpo", parent_page_id="163841")
+
+    assert captured["json"]["ancestors"] == [{"id": "163841"}]

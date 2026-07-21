@@ -1,3 +1,4 @@
+import html
 import os
 from html.parser import HTMLParser
 
@@ -43,6 +44,39 @@ def _storage_para_texto(storage_html: str) -> str:
     parser = _StorageFormatParaTexto()
     parser.feed(storage_html)
     return parser.texto()
+
+
+def _texto_para_storage(texto: str) -> str:
+    """Converte texto simples no storage format (XHTML) do Confluence, um parágrafo por linha não vazia."""
+    paragrafos = [
+        f"<p>{html.escape(linha)}</p>" for linha in texto.splitlines() if linha.strip()
+    ]
+    return "".join(paragrafos)
+
+
+def create_page(
+    space_key: str, title: str, texto: str, parent_page_id: str | None = None
+) -> str:
+    """Cria uma nova página no Confluence Cloud a partir de texto simples e retorna o id da página criada."""
+    base_url, email, token = _credenciais()
+
+    body: dict = {
+        "type": "page",
+        "title": title,
+        "space": {"key": space_key},
+        "body": {"storage": {"value": _texto_para_storage(texto), "representation": "storage"}},
+    }
+    if parent_page_id:
+        body["ancestors"] = [{"id": parent_page_id}]
+
+    resposta = httpx.post(
+        f"{base_url}/wiki/rest/api/content",
+        auth=(email, token),
+        json=body,
+        timeout=30,
+    )
+    resposta.raise_for_status()
+    return resposta.json()["id"]
 
 
 def get_page_text(page_id: str) -> str:

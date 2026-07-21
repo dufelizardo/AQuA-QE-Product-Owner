@@ -1,10 +1,22 @@
-from aqua_qe_product_owner.models import AcceptanceCriteria, BusinessRule, Requirement, UserStory
+from aqua_qe_product_owner.models import (
+    AcceptanceCriteria,
+    BusinessRule,
+    PRDDraft,
+    Requirement,
+    UserStory,
+)
 from aqua_qe_product_owner.skills import extract_prd_context as extract_prd_context_module
 from aqua_qe_product_owner.skills import extract_requirements as extract_requirements_module
+from aqua_qe_product_owner.skills import generate_prd as generate_prd_module
+from aqua_qe_product_owner.skills import (
+    generate_prd_clarifying_questions as generate_prd_clarifying_questions_module,
+)
 from aqua_qe_product_owner.skills import generate_story as generate_story_module
 from aqua_qe_product_owner.skills import identify_actor as identify_actor_module
 from aqua_qe_product_owner.skills import identify_business_rules as identify_business_rules_module
 from aqua_qe_product_owner.skills import identify_goal as identify_goal_module
+from aqua_qe_product_owner.skills import refine_prd as refine_prd_module
+from aqua_qe_product_owner.skills import review_prd as review_prd_module
 from aqua_qe_product_owner.skills import review_story as review_story_module
 
 
@@ -144,3 +156,104 @@ def test_review_story_uses_review_model_and_maps_result(monkeypatch):
 
     assert resultado == {"aprovado": True, "problemas": []}
     assert captured["model"] == "phi4"
+
+
+def test_generate_prd_maps_json_to_model(monkeypatch):
+    monkeypatch.setattr(
+        generate_prd_module,
+        "complete_json",
+        lambda prompt, system="", model=None: {
+            "contexto_problema": "contexto",
+            "objetivo": "objetivo do produto",
+            "publico_alvo": "publico",
+            "escopo": "escopo",
+            "fora_de_escopo": "fora de escopo",
+            "requisitos_funcionais": ["requisito 1"],
+            "requisitos_nao_funcionais": ["requisito nf 1"],
+            "criterios_sucesso": ["criterio 1"],
+            "riscos_premissas": ["risco 1"],
+        },
+    )
+
+    draft = generate_prd_module.generate_prd("uma ideia")
+
+    assert draft.objective == "objetivo do produto"
+    assert draft.functional_requirements == ["requisito 1"]
+    assert draft.risks_assumptions == ["risco 1"]
+
+
+def test_generate_prd_defaults_to_empty_when_llm_omits_fields(monkeypatch):
+    monkeypatch.setattr(
+        generate_prd_module, "complete_json", lambda prompt, system="", model=None: {}
+    )
+
+    draft = generate_prd_module.generate_prd("uma ideia")
+
+    assert draft.objective == ""
+    assert draft.functional_requirements == []
+
+
+def test_review_prd_uses_review_model_and_maps_result(monkeypatch):
+    captured = {}
+
+    def fake_complete_json(prompt, system="", model=None):
+        captured["model"] = model
+        return {"aprovado": False, "problemas": ["escopo confuso"]}
+
+    monkeypatch.setattr(review_prd_module, "complete_json", fake_complete_json)
+
+    resultado = review_prd_module.review_prd(PRDDraft(objective="o", scope="e"))
+
+    assert resultado == {"aprovado": False, "problemas": ["escopo confuso"]}
+    assert captured["model"] == "phi4"
+
+
+def test_generate_prd_clarifying_questions_returns_empty_without_review_notes():
+    assert generate_prd_clarifying_questions_module.generate_prd_clarifying_questions(
+        PRDDraft()
+    ) == []
+
+
+def test_generate_prd_clarifying_questions_maps_json_to_list(monkeypatch):
+    monkeypatch.setattr(
+        generate_prd_clarifying_questions_module,
+        "complete_json",
+        lambda prompt, system="", model=None: {"perguntas": ["Qual o publico-alvo?"]},
+    )
+
+    draft = PRDDraft(objective="o", scope="e", review_notes=["publico-alvo indefinido"])
+    perguntas = generate_prd_clarifying_questions_module.generate_prd_clarifying_questions(draft)
+
+    assert perguntas == ["Qual o publico-alvo?"]
+
+
+def test_refine_prd_rewrites_fields_from_answers(monkeypatch):
+    monkeypatch.setattr(
+        refine_prd_module,
+        "complete_json",
+        lambda prompt, system="", model=None: {
+            "contexto_problema": "contexto",
+            "objetivo": "objetivo refinado",
+            "publico_alvo": "publico refinado",
+            "escopo": "escopo",
+            "fora_de_escopo": "",
+            "requisitos_funcionais": ["requisito 1"],
+            "requisitos_nao_funcionais": [],
+            "criterios_sucesso": ["criterio 1"],
+            "riscos_premissas": [],
+        },
+    )
+
+    draft = PRDDraft(
+        context_problem="contexto",
+        objective="objetivo antigo",
+        scope="escopo",
+        functional_requirements=["requisito 1"],
+        success_criteria=["criterio 1"],
+    )
+    resultado = refine_prd_module.refine_prd(
+        draft, [{"pergunta": "qual o publico-alvo?", "resposta": "publico refinado"}]
+    )
+
+    assert resultado.objective == "objetivo refinado"
+    assert resultado.target_audience == "publico refinado"

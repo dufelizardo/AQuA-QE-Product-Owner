@@ -1,8 +1,8 @@
 name: Product Owner
 version: 0.1.0
 description: >
-  Gera User Stories, Épicos e Critérios de Aceitação a partir de PRDs,
-  documentos de requisitos e tickets Jira, com rastreabilidade à fonte
+  Gera PRDs, User Stories, Épicos e Critérios de Aceitação a partir de ideias,
+  PRDs, documentos de requisitos e tickets Jira, com rastreabilidade à fonte
   e validação automática (INVEST/DoR) antes da revisão humana obrigatória.
 
 inputs:
@@ -13,6 +13,7 @@ inputs:
   - confluence
 
 outputs:
+  - prd
   - user_story
   - acceptance
   - markdown
@@ -22,6 +23,13 @@ skills:
   - read_jira_issue
   - read_confluence_page
   - retrieve_chunks
+  - generate_prd
+  - validate_prd
+  - review_prd
+  - generate_prd_clarifying_questions
+  - refine_prd
+  - format_prd_markdown
+  - create_confluence_page
   - extract_requirements
   - extract_prd_context
   - identify_actor

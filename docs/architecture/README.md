@@ -2,7 +2,7 @@
 
 Representação visual da arquitetura e dos fluxos do agente, complementando a documentação em prosa de `../agent/system_design.md`, `../agent/agent_design.md`, `../agent/skills.md` e `../../WHITEPAPER.md`.
 
-- **Fonte editável**: [`architecture.drawio`](architecture.drawio) — arquivo único, 5 páginas, abra em [app.diagrams.net](https://app.diagrams.net) ou na extensão "Draw.io Integration" do VS Code.
+- **Fonte editável**: [`architecture.drawio`](architecture.drawio) — arquivo único, 6 páginas, abra em [app.diagrams.net](https://app.diagrams.net) ou na extensão "Draw.io Integration" do VS Code.
 - **Espelho estático**: `svg/*.svg` — mesmo conteúdo de cada página, visível diretamente aqui no GitHub/VS Code, sem precisar abrir o draw.io.
 
 ## 1 — Arquitetura em camadas
@@ -34,6 +34,12 @@ O diferencial do projeto: quando a revisão reprova, o agente gera perguntas obj
 ![Integrações externas](svg/05-integracoes-externas.svg)
 
 Ollama local (`mistral`/`phi4`/`bge-m3`), Qdrant embarcado, Jira Cloud e Confluence Cloud, e qual módulo de `services/` fala com cada um.
+
+## 6 — Ideia para PRD e Confluence
+
+![Ideia para PRD e Confluence](svg/06-ideia-para-prd-confluence.svg)
+
+O passo "Ideia → PRD" que faltava: `generate_prd` → `validate_prd` → `review_prd`, com o mesmo ciclo de refinamento humano-no-loop do Diagrama 4 (`generate_prd_clarifying_questions`/`refine_prd`). Uma vez aceito, `format_prd_markdown` produz o texto final, que pode ser exportado, publicado como página no Confluence (`create_confluence_page`) e/ou virar a entrada do Diagrama 3 (gerar o Épico a partir do PRD recém-criado).
 
 ## Mantendo `.drawio` e `.svg` sincronizados
 

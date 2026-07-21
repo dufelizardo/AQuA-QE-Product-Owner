@@ -11,14 +11,19 @@ _RAIZ = Path(__file__).resolve().parent
 sys.path.insert(0, str(_RAIZ / "src"))
 load_dotenv(_RAIZ / ".env")
 
-from aqua_qe_product_owner.models import Epic, StoryStatus, UserStory  # noqa: E402
+from aqua_qe_product_owner.models import Epic, PRDDraft, StoryStatus, UserStory  # noqa: E402
 from aqua_qe_product_owner.orchestrator.product_owner import handle_request  # noqa: E402
+from aqua_qe_product_owner.skills.create_confluence_page import create_confluence_page  # noqa: E402
 from aqua_qe_product_owner.skills.create_jira_epic import create_jira_epic  # noqa: E402
 from aqua_qe_product_owner.skills.create_jira_story import create_jira_story  # noqa: E402
 from aqua_qe_product_owner.skills.diff_story_versions import diff_story_versions  # noqa: E402
 from aqua_qe_product_owner.skills.export_markdown import export_markdown  # noqa: E402
+from aqua_qe_product_owner.skills.format_prd_markdown import format_prd_markdown  # noqa: E402
 from aqua_qe_product_owner.skills.generate_clarifying_questions import (  # noqa: E402
     generate_clarifying_questions,
+)
+from aqua_qe_product_owner.skills.generate_prd_clarifying_questions import (  # noqa: E402
+    generate_prd_clarifying_questions,
 )
 from aqua_qe_product_owner.skills.read_confluence_page import read_confluence_page  # noqa: E402
 from aqua_qe_product_owner.skills.read_jira_issue import read_jira_issue  # noqa: E402
@@ -28,6 +33,10 @@ from aqua_qe_product_owner.skills.validate_traceability import validate_traceabi
 from aqua_qe_product_owner.workflow.generate_epic import (  # noqa: E402
     generate_epic_shape,
     generate_epic_stories,
+)
+from aqua_qe_product_owner.workflow.generate_prd import (  # noqa: E402
+    generate_prd_draft,
+    refine_prd_draft,
 )
 from aqua_qe_product_owner.workflow.refine_story import refine_user_story  # noqa: E402
 
@@ -272,9 +281,78 @@ def _rodar_lote(texto: str, saida: str | None, refinar: bool, criar_jira: bool) 
         _criar_epico_no_jira(epic)
 
 
+def _imprimir_prd(draft: PRDDraft) -> None:
+    print(f"status: {draft.status.value}")
+    print(f"objetivo: {draft.objective}")
+    print(f"escopo: {draft.scope}")
+    print(f"requisitos funcionais: {len(draft.functional_requirements)}")
+    if draft.review_notes:
+        print("observações da revisão:")
+        for nota in draft.review_notes:
+            print(f"  - {nota}")
+
+
+def _ciclo_de_refinamento_prd(draft: PRDDraft) -> PRDDraft:
+    """Gera perguntas, pede respostas ao usuário, refina e reavalia até aprovar ou o usuário desistir."""
+    while draft.status != StoryStatus.DRAFT_VALIDATED and draft.review_notes:
+        perguntas = generate_prd_clarifying_questions(draft)
+        if not perguntas:
+            break
+
+        print("\nO revisor apontou problemas. Responda para ajudar a refinar o PRD:")
+        respostas = []
+        for pergunta in perguntas:
+            resposta = input(f"  {pergunta}\n  > ")
+            respostas.append({"pergunta": pergunta, "resposta": resposta})
+
+        draft = refine_prd_draft(draft, respostas)
+        print("\n--- PRD refinado ---")
+        _imprimir_prd(draft)
+
+        if draft.status != StoryStatus.DRAFT_VALIDATED and not _perguntar_sim_nao(
+            "\nTentar refinar de novo?"
+        ):
+            break
+    return draft
+
+
+def _publicar_prd_confluence(draft: PRDDraft) -> None:
+    if not _perguntar_sim_nao("\nPublicar este PRD no Confluence?"):
+        return
+
+    titulo = input("Título da página no Confluence: ").strip()
+    url = create_confluence_page(draft, titulo)
+    print(f"PRD publicado no Confluence: {url}")
+
+
+def _rodar_prd(ideia: str, saida: str | None, refinar: bool, publicar_confluence: bool) -> str | None:
+    """Gera um PRD a partir de uma ideia; retorna o texto formatado se aceito, ou None."""
+    draft = generate_prd_draft(ideia)
+    _imprimir_prd(draft)
+
+    if refinar:
+        draft = _ciclo_de_refinamento_prd(draft)
+
+    if not _perguntar_sim_nao("\nAceitar este PRD?"):
+        return None
+
+    draft.status = StoryStatus.ACCEPTED
+    texto_final = format_prd_markdown(draft)
+
+    if saida:
+        with open(saida, "w", encoding="utf-8") as arquivo:
+            arquivo.write(texto_final)
+        print(f"exportado para: {saida}")
+
+    if publicar_confluence:
+        _publicar_prd_confluence(draft)
+
+    return texto_final
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Executa o AQuA-QE Product Owner.")
-    parser.add_argument("--modo", choices=["unitario", "lote"], default="unitario")
+    parser.add_argument("--modo", choices=["unitario", "lote", "prd"], default="unitario")
     entrada = parser.add_mutually_exclusive_group(required=True)
     entrada.add_argument("--arquivo", help="Caminho de um arquivo .txt/.md de entrada.")
     entrada.add_argument("--texto", help="Texto de entrada direto (chat).")
@@ -285,7 +363,7 @@ def main() -> None:
     parser.add_argument(
         "--saida",
         help=(
-            "Modo unitario: caminho do .md exportado. "
+            "Modo unitario/prd: caminho do .md exportado. "
             "Modo lote: pasta onde cada US-*.md será exportada."
         ),
     )
@@ -294,7 +372,7 @@ def main() -> None:
         action="store_true",
         help=(
             "Ativa o ciclo interativo de perguntas/refinamento para histórias "
-            "não aprovadas, com prompt final de aceitação e changelog."
+            "(ou PRDs, no modo prd) não aprovados, com prompt final de aceitação."
         ),
     )
     parser.add_argument(
@@ -306,11 +384,26 @@ def main() -> None:
             "no Jira (JIRA_PROJECT_KEY), com as User Stories como tickets filhos."
         ),
     )
+    parser.add_argument(
+        "--publicar-confluence",
+        action="store_true",
+        dest="publicar_confluence",
+        help=(
+            "Modo prd: após aceitar o PRD, pergunta o título e publica a página "
+            "no Confluence (CONFLUENCE_SPACE_KEY)."
+        ),
+    )
     args = parser.parse_args()
 
     texto = _ler_entrada(args)
     if args.modo == "unitario":
         _rodar_unitario(texto, args.saida, args.jira, args.refinar)
+    elif args.modo == "prd":
+        prd_aceito = _rodar_prd(texto, args.saida, args.refinar, args.publicar_confluence)
+        if prd_aceito and _perguntar_sim_nao(
+            "\nContinuar e gerar o Épico a partir deste PRD?"
+        ):
+            _rodar_lote(prd_aceito, args.saida, args.refinar, args.criar_jira)
     else:
         _rodar_lote(texto, args.saida, args.refinar, args.criar_jira)
 

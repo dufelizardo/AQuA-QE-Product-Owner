@@ -17,8 +17,8 @@ PRD → System Design → Agent Design → AI Specs/Rules/Skills → Context Eng
 - **`knowledge/templates/`** — pure structure, no knowledge (templates for User Story, Epic, Feature, Acceptance Criteria, Business Rule, Task).
 - **`knowledge/examples/`** — few-shot examples (good and bad examples, by category).
 - **`knowledge/glossary/`** and **`knowledge/regulations/`** — general glossary and regulations applicable to the platform.
-- **`src/aqua_qe_product_owner/skills/`** — the agent's skills in Python (read text file, read a Jira issue, retrieve chunks, extract requirements, extract PRD context, identify actor/goal/rules, generate/validate/review/refine the story, generate Epic metadata, diff story versions, export to Markdown, update/create Jira issues).
-- **`src/aqua_qe_product_owner/models/`** — the agent's data structures (User Story, Epic, Acceptance Criteria, Business Rule, Actor, Requirement, PRDContext).
+- **`src/aqua_qe_product_owner/skills/`** — the agent's skills in Python (generate/validate/review/refine a PRD from an idea, read text file, read a Jira issue, retrieve chunks, extract requirements, extract PRD context, identify actor/goal/rules, generate/validate/review/refine the story, generate Epic metadata, diff story versions, export to Markdown, update/create Jira issues, create a Confluence page).
+- **`src/aqua_qe_product_owner/models/`** — the agent's data structures (User Story, Epic, Acceptance Criteria, Business Rule, Actor, Requirement, PRDContext, PRDDraft).
 - **`src/aqua_qe_product_owner/workflow/`** — orchestration of the skill sequence per use case (generate a single User Story, generate a batch Epic, generate/complement acceptance criteria).
 - **`src/aqua_qe_product_owner/orchestrator/`** — single entry point that decides which workflow to run.
 - **`src/aqua_qe_product_owner/services/`** — external integrations: `llm_service` (local Ollama, generation), `embedding_service` (local Ollama, `bge-m3`), `rag_service` (embedded/local Qdrant, no server) and `jira_service` (Jira Cloud REST API).
@@ -52,6 +52,12 @@ This is a standalone repository (not part of any monorepo) — `uv sync` here re
 ## Usage
 
 ```bash
+# Generate a PRD from an informal idea, with the interactive refinement loop
+uv run python run.py --modo prd --texto "Customers should be able to open a CDB from the app" --refinar --saida prd.md
+
+# Generate a PRD and publish it as a new Confluence page
+uv run python run.py --modo prd --arquivo idea.txt --refinar --publicar-confluence
+
 # A single User Story from a .txt/.md file
 uv run python run.py --modo unitario --arquivo requirement.txt --saida story.md
 
@@ -80,14 +86,17 @@ uv run python run.py --modo lote --confluence "https://your-site.atlassian.net/w
 
 Batch mode (`--modo lote`) always stops right after defining the Epic (title, objective, scope, value, acceptance criteria) to ask whether to continue — before generating any User Story, so a wrong-scoped Epic doesn't cost a full batch of story generation.
 
-`--criar-jira` (batch mode only), after the Epic and its User Stories are generated and an explicit acceptance prompt, creates the Epic ticket in Jira (`JIRA_PROJECT_KEY`, `JIRA_EPIC_ISSUE_TYPE_ID`) and each User Story as a child ticket (`JIRA_STORY_ISSUE_TYPE_ID`, simple `parent` link — assumes a *team-managed* project), returning the created keys. See `run.py --help` for all options.
+`--criar-jira` (batch mode only), after the Epic and its User Stories are generated and an explicit acceptance prompt, creates the Epic ticket in Jira (`JIRA_PROJECT_KEY`, `JIRA_EPIC_ISSUE_TYPE_ID`) and each User Story as a child ticket (`JIRA_STORY_ISSUE_TYPE_ID`, simple `parent` link — assumes a *team-managed* project), returning the created keys.
+
+`--modo prd` generates a full PRD from an informal idea (`--arquivo`/`--texto`), goes through the same INVEST/DoR-equivalent validation, independent review and interactive refinement loop as a User Story, and — once explicitly accepted — can be exported (`--saida`), published as a new Confluence page (`--publicar-confluence`, requires `CONFLUENCE_SPACE_KEY`), and/or become the input for batch mode (the CLI asks whether to continue and generate the Epic from it). See `run.py --help` for all options.
 
 ## Status
 
 `docs/agent/`, `docs/standards/` and `knowledge/` (except `domain/`, `regulations/` and `examples/`, which depend on a real client/project) are filled in with real content.
 
-In `src/`, all 10 skills and the three workflows are implemented and work end to end with local models via Ollama:
+In `src/`, all 30 skills and the four workflows are implemented and work end to end with local models via Ollama:
 
+- **PRD mode** (`workflow/generate_prd.py`, via `run.py --modo prd`) — the "Idea → PRD" step: `generate_prd` (LLM `mistral`) writes a full PRD from an informal idea (context/problem, objective, target audience, scope, out-of-scope, functional/non-functional requirements, success criteria, risks — per `docs/standards/prd_standard.md`), `validate_prd` (pure Python checklist) → `review_prd` (reviewer LLM `phi4`) → the same interactive refinement loop as User Story (`generate_prd_clarifying_questions` + `refine_prd`) → explicit human acceptance. Once accepted, `format_prd_markdown` produces the final text, which can be exported, published to Confluence (`create_confluence_page`, via `--publicar-confluence`), and/or feed directly into batch mode.
 - **Single-story mode** (`workflow/generate_user_story.py`) — `read_text_file` → `extract_requirements` → `identify_actor`/`identify_goal`/`identify_business_rules` → `generate_story` (LLM `mistral`) → `validate_story` (pure Python checklist) → `review_story` (reviewer LLM `phi4`, independent from the generator) → final status.
 - **Batch mode** (`workflow/generate_epic.py`) — in two phases: `generate_epic_shape` extracts the requirements, extracts the PRD's non-functional context (`extract_prd_context` — vision, non-functional requirements, constraints, success criteria, risks, dependencies, kept in `epic.prd_context`), and defines the Epic's title, objective, scope, value and high-level acceptance criteria from the source text alone (no story generated yet), then `validate_epic` runs the automatic checklist — this is the point where `run.py --modo lote` asks whether to continue, before paying the cost of generating any story. Only after confirmation does `generate_epic_stories` apply the single-story pipeline to each extracted requirement (ambiguous items become `unresolved_items` without blocking the rest of the batch), then run `validate_traceability` (duplicated stories, stories with no business value, orphan requirements) and `review_epic` (reviewer LLM `phi4`, now able to judge coherence against the stories it groups).
 - **Acceptance criteria complement** (`workflow/generate_acceptance.py`) — generates additional acceptance criteria for an existing User Story and reapplies `validate_story`/`review_story`.
@@ -96,6 +105,6 @@ In `src/`, all 10 skills and the three workflows are implemented and work end to
 - `orchestrator/product_owner.py` (`handle_request(entrada, modo)`) handles `"unitario"` (single) and `"lote"` (batch).
 - `retrieve_chunks` indexes and searches `knowledge/methodology/` via local embedding (`bge-m3`) and a local Qdrant instance; `read_jira_issue` fetches a Jira Cloud issue via REST API; `read_confluence_page` fetches a Confluence Cloud page (same credentials as Jira); `export_markdown` formats the final output.
 
-Still missing: a `Feature` layer between Epic and User Story (today it only exists as a template in `knowledge/templates/feature.md`, no skill/workflow — evaluated and deliberately deferred until a PRD is large enough to actually need grouping), indexing of `knowledge/domain/` (empty, waiting on a real client), and project/long-term memory (`memory.md` — distinct from the RAG built over `knowledge/`, not yet implemented). `tests/` covers every implemented module (73 tests, LLM/HTTP calls mocked — fast and deterministic, no real calls to Ollama, Jira, or Confluence).
+Still missing: a `Feature` layer between Epic and User Story (today it only exists as a template in `knowledge/templates/feature.md`, no skill/workflow — evaluated and deliberately deferred until a PRD is large enough to actually need grouping), indexing of `knowledge/domain/` (empty, waiting on a real client), and project/long-term memory (`memory.md` — distinct from the RAG built over `knowledge/`, not yet implemented). `tests/` covers every implemented module (95 tests, LLM/HTTP calls mocked — fast and deterministic, no real calls to Ollama, Jira, or Confluence).
 
 This project has its own git repository, independent from the parent monorepo (per the "every new project gets a separate repository" convention — see the root `CLAUDE.md`): [github.com/dufelizardo/AQuA-QE-Product-Owner](https://github.com/dufelizardo/AQuA-QE-Product-Owner).
