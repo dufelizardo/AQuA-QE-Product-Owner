@@ -108,3 +108,8 @@ In `src/`, all 33 skills and the four workflows are implemented and work end to 
 Still missing: a `Feature` layer between Epic and User Story (today it only exists as a template in `knowledge/templates/feature.md`, no skill/workflow — evaluated and deliberately deferred until a PRD is large enough to actually need grouping), indexing of `knowledge/domain/` (empty, waiting on a real client), and project/long-term memory (`memory.md` — distinct from the RAG built over `knowledge/`, not yet implemented). `tests/` covers every implemented module (113 tests, LLM/HTTP calls mocked — fast and deterministic, no real calls to Ollama, Jira, or Confluence).
 
 This project has its own git repository, independent from the parent monorepo (per the "every new project gets a separate repository" convention — see the root `CLAUDE.md`): [github.com/dufelizardo/AQuA-QE-Product-Owner](https://github.com/dufelizardo/AQuA-QE-Product-Owner).
+
+---
+
+**Eduardo Felizardo Cândido**
+Senior QA Automation Engineer | AI-driven Testing | Robot Framework & Python

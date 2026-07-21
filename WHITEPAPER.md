@@ -181,3 +181,8 @@ Ver `README.md`/`README.pt.md` para o passo a passo completo de instalação (Py
 ## 13. Conclusão
 
 O AQuA-QE Product Owner não busca substituir o Product Owner — busca eliminar o trabalho mecânico de estruturação que precede a decisão dele. Cada guardrail do projeto (nunca inventar, nunca entregar história vaga, nunca omitir regra de negócio, nunca aprovar sozinho) existe para que a saída do agente seja sempre um ponto de partida confiável para revisão humana, nunca um substituto dela. O ciclo de refinamento interativo — perguntas geradas pelo LLM, respondidas por um humano real, incorporadas de volta à história — é a peça central que diferencia este agente de um simples gerador de texto plausível.
+
+---
+
+**Eduardo Felizardo Cândido**
+Senior QA Automation Engineer | AI-driven Testing | Robot Framework & Python

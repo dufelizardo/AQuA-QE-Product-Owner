@@ -108,3 +108,8 @@ Em `src/`, todas as 33 skills e os quatro workflows estão implementados e funci
 Ainda faltam: uma camada de `Feature` entre Epic e User Story (hoje só existe como template em `knowledge/templates/feature.md`, sem skill/workflow — avaliado e adiado deliberadamente até haver um PRD grande o suficiente para precisar de agrupamento), indexação de `knowledge/domain/` (vazio, aguardando cliente real) e memória de projeto/longo prazo (`memory.md` — distinta do RAG sobre `knowledge/`, ainda não implementada). `tests/` cobre todos os módulos implementados (113 testes, mocks de LLM/HTTP — rápidos e determinísticos, não chamam Ollama nem Jira/Confluence de verdade).
 
 Este projeto tem repositório git próprio, independente do monorepo raiz (conforme a convenção "todo projeto novo recebe repositório separado" — ver `CLAUDE.md` raiz): [github.com/dufelizardo/AQuA-QE-Product-Owner](https://github.com/dufelizardo/AQuA-QE-Product-Owner).
+
+---
+
+**Eduardo Felizardo Cândido**
+Senior QA Automation Engineer | AI-driven Testing | Robot Framework & Python
