@@ -64,10 +64,11 @@ In batch mode, the same pattern repeats at the Epic level, but in **two phases**
 Full input (.txt/Markdown/Confluence)
    → extract_requirements
    → extract_prd_context (vision, non-functional requirements, risks, success criteria, constraints, dependencies)
-   → generate_epic_metadata (from the text + requirements, with NO story yet)
+   → identify_epic_groups (groups the requirements by thematic coherence — 1 group if the PRD is cohesive, N if it covers distinct fronts)
+   → per group: generate_epic_metadata (from the text + the group's requirements, with NO story yet)
    → validate_epic
-   → [human checkpoint] "Continue and generate this Epic's User Stories?"
-   → generate_epic_stories: for each requirement → generate_story → validate_story → review_story
+   → [human checkpoint] "Continue and generate the User Stories for {these N Epics / this Epic}?"
+   → per Epic: generate_epic_stories: for each requirement → generate_story → validate_story → review_story
    → validate_traceability (duplicated stories, missing value, orphan requirements)
    → review_epic (now with the stories in place, evaluates real coherence with the Epic)
    → interactive human refinement for each rejected story
@@ -78,17 +79,19 @@ Full input (.txt/Markdown/Confluence)
 
 `extract_prd_context` closes a real traceability gap: a typical PRD (`docs/standards/prd_standard.md`) contains much more than functional requirements — vision, target audience, non-functional requirements, constraints, success criteria, risks, dependencies. Before, only the raw text and the flat list of functional requirements survived processing; all that other content was read by the LLM but never structured or preserved. `epic.prd_context` keeps that information tied to the Epic, without introducing any new process layer — it just preserves what was already being read.
 
+`identify_epic_groups` closes the PRD→Epic(s) gap: before, a PRD covering distinct thematic fronts (e.g., "Scheduling" + "Notifications" + "Payment") always became a single, artificially broad Epic, mixing everything together. Now the grouping step decides how many Epics make sense — which can be just one, when the PRD is cohesive (default behavior, no visible change). If the LLM's response doesn't cover every requirement exactly once, the skill falls back to the safe single-group behavior, never losing traceability or inventing an inconsistent split (GR-1). The relationship is always one-directional — a PRD generates one or more Epics, never the reverse.
+
 Code layers (`src/aqua_qe_product_owner/`):
 
 - **`models/`** — data structures: `UserStory`, `Epic` (with `UnresolvedItem`), `AcceptanceCriteria`, `BusinessRule`, `Actor`, `Requirement`, `PRDContext`, `PRDDraft`, and the `StoryStatus` enum (`draft_validated` / `pending_clarification` / `accepted`).
-- **`skills/`** — 30 functions, each with a single side effect and a single responsibility (see section 5).
+- **`skills/`** — 31 functions, each with a single side effect and a single responsibility (see section 5).
 - **`workflow/`** — orchestration of the skill sequence per use case: `generate_prd.py` (`generate_prd_draft` → generates the PRD from an idea; `refine_prd_draft` → refines it with human answers), `generate_user_story.py` (`finalize_story`), `generate_epic.py` (`generate_epic_shape` → defines the Epic; `generate_epic_stories` → splits it into User Stories and finalizes it; `generate_epic` → convenience wrapper chaining both, with no human checkpoint), `generate_acceptance.py`, `refine_story.py`.
 - **`orchestrator/product_owner.py`** — single entry point (`handle_request(entrada, modo)`), decides between `"unitario"` (single) and `"lote"` (batch) mode.
 - **`services/`** — external integrations, introduced incrementally, one per real consumer: `llm_service` (Ollama), `embedding_service` (Ollama), `rag_service` (embedded Qdrant), `jira_service` and `confluence_service` (REST API + httpx).
 
 There is deliberately **no** `Feature` layer between Epic and User Story in the code (it only exists as a template in `knowledge/templates/feature.md`). The evaluation recorded in the project concluded that this layer has real value, but a disproportionate cost for the volume of PRDs tested so far — it's deferred until a PRD large enough justifies the grouping, instead of being built speculatively.
 
-## 5. The 30 skills
+## 5. The 31 skills
 
 Skills with no LLM (pure Python, deterministic):
 
@@ -99,7 +102,7 @@ Skills with no LLM (pure Python, deterministic):
 
 Skills using the generator LLM (`OLLAMA_MODEL`, default `mistral`):
 
-- `generate_prd`, `generate_prd_clarifying_questions`, `refine_prd`, `extract_requirements`, `extract_prd_context`, `identify_actor`, `identify_goal`, `identify_business_rules`, `generate_story`, `generate_clarifying_questions`, `refine_story`, `generate_epic_metadata`.
+- `generate_prd`, `generate_prd_clarifying_questions`, `refine_prd`, `extract_requirements`, `extract_prd_context`, `identify_epic_groups`, `identify_actor`, `identify_goal`, `identify_business_rules`, `generate_story`, `generate_clarifying_questions`, `refine_story`, `generate_epic_metadata`.
 
 Skills using an independent reviewer LLM (`OLLAMA_REVIEW_MODEL`, default `phi4` — deliberately a different model from the generator, to mitigate self-preference bias):
 
@@ -136,8 +139,8 @@ Importantly, this cycle isn't just an approval gate. The human's answer to each 
 
 - **PRD** (`--modo prd`) — the missing "Idea → PRD" step: `generate_prd` produces a full PRD (context/problem, objective, target audience, scope, out-of-scope, functional/non-functional requirements, success criteria, risks and assumptions — per `docs/standards/prd_standard.md`) from an informal idea, goes through the same `validate_prd` → `review_prd` → `generate_prd_clarifying_questions`/`refine_prd` pattern (full interactive human-in-the-loop refinement, section 6) → explicit human acceptance. Once accepted, `format_prd_markdown` produces the final text, which can be exported (`--saida`), published to Confluence (`--publicar-confluence`), and/or become the batch mode's input (the CLI asks whether to continue and generate the Epic from it). Input via `--arquivo` or `--texto`.
 - **Single** (`--modo unitario`) — one User Story per run, with the possibility of close interaction at each step. Input via `--arquivo`, `--texto`, or `--jira`.
-- **Batch/Epic** (`--modo lote`) — in two phases: first `extract_prd_context` + `generate_epic_metadata` define the Epic's title/objective/scope/value/criteria from the source text and the extracted requirements (`extract_requirements`) — **without generating any User Story yet** — and `validate_epic` checks the automatic checklist; the CLI then asks the user whether to continue. Only after confirmation is the Epic split into User Stories (one per requirement), each going through the full single-mode pipeline; ambiguous items become `unresolved_items` without blocking the rest of the batch; `validate_traceability` and `review_epic` (now with the stories in place) run before per-story refinement. Input via `--arquivo` or `--confluence`.
-- **`--criar-jira`** (batch mode) — after explicit human acceptance, creates the Epic ticket and each User Story as a child ticket in Jira Cloud (simple `parent` link, assumes a *team-managed* project).
+- **Batch/Epic(s)** (`--modo lote`) — in two phases: first `extract_prd_context` + `identify_epic_groups` (groups the extracted requirements by thematic coherence — a cohesive PRD becomes a single Epic; a PRD covering distinct fronts can become several) + `generate_epic_metadata` per group define each candidate Epic's title/objective/scope/value/criteria from the source text — **without generating any User Story yet** — and `validate_epic` checks each one's automatic checklist; the CLI then asks the user whether to continue (a single combined question covering every Epic identified). Only after confirmation is each Epic split into User Stories (one per requirement in its group), each going through the full single-mode pipeline; ambiguous items become `unresolved_items` without blocking the rest of the batch; `validate_traceability` and `review_epic` (now with the stories in place) run before per-story refinement, one Epic at a time. Input via `--arquivo` or `--confluence`.
+- **`--criar-jira`** (batch mode) — after explicit human acceptance **of each Epic** (individual prompt, one Epic at a time), creates the Epic ticket and each User Story as a child ticket in Jira Cloud (simple `parent` link, assumes a *team-managed* project).
 - **`--publicar-confluence`** (PRD mode) — after explicit human acceptance of the PRD, asks for a title and publishes the page to Confluence Cloud (`create_confluence_page`), returning the created URL.
 
 ## 8. Real integrations
@@ -156,7 +159,7 @@ All **write** operations require explicit human acceptance before firing — the
 
 ## 10. Quality and test coverage
 
-95 automated tests cover every implemented module (90% line coverage), all with Ollama/Jira/Confluence calls mocked — fast, deterministic, no dependency on external infrastructure to run in CI. Evaluating the agent in production combines three layers that never substitute for one another (`docs/agent/evaluation.md`):
+103 automated tests cover every implemented module (90% line coverage), all with Ollama/Jira/Confluence calls mocked — fast, deterministic, no dependency on external infrastructure to run in CI. Evaluating the agent in production combines three layers that never substitute for one another (`docs/agent/evaluation.md`):
 
 1. Automatic checklist (`validate_story`/`validate_epic`) — no LLM.
 2. LLM-as-judge (`review_story`/`review_epic`) — a different model from the generator.

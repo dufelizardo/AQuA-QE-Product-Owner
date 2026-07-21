@@ -1,10 +1,11 @@
-from ..models import AcceptanceCriteria, Epic, StoryStatus, UnresolvedItem, UserStory
+from ..models import AcceptanceCriteria, Epic, PRDContext, Requirement, StoryStatus, UnresolvedItem, UserStory
 from ..skills.extract_prd_context import extract_prd_context
 from ..skills.extract_requirements import extract_requirements
 from ..skills.generate_epic_metadata import generate_epic_metadata
 from ..skills.generate_story import generate_story
 from ..skills.identify_actor import identify_actor
 from ..skills.identify_business_rules import identify_business_rules
+from ..skills.identify_epic_groups import identify_epic_groups
 from ..skills.identify_goal import identify_goal
 from ..skills.review_epic import review_epic
 from ..skills.validate_epic import validate_epic
@@ -25,19 +26,8 @@ def finalize_epic(epic: Epic) -> Epic:
     return epic
 
 
-def generate_epic_shape(texto: str) -> Epic:
-    """Extrai os requisitos e o contexto do PRD, e define o Epic (titulo/objetivo/escopo/valor/criterios) a partir da fonte, antes de gerar qualquer User Story.
-
-    epic.prd_context preserva a parte do PRD que não é requisito funcional
-    (visão, requisitos não funcionais, restrições, critérios de sucesso, riscos,
-    dependências) — hoje descartada após a extração, mas necessária para
-    rastreabilidade completa do PRD (ver docs/standards/prd_standard.md).
-
-    O status reflete apenas o checklist automático (validate_epic) — review_epic
-    avalia coerência com as stories agrupadas, que ainda não existem neste ponto.
-    """
-    requisitos = extract_requirements(texto)
-    prd_context = extract_prd_context(texto)
+def _montar_epic(epic_id: str, texto: str, requisitos: list[Requirement], prd_context: PRDContext) -> Epic:
+    """Gera metadados (generate_epic_metadata) e monta um Epic validado a partir de um grupo de requisitos."""
     metadados = generate_epic_metadata(texto, requisitos)
     criterios = [
         AcceptanceCriteria(
@@ -51,7 +41,7 @@ def generate_epic_shape(texto: str) -> Epic:
     ]
 
     epic = Epic(
-        id="EPIC-001",
+        id=epic_id,
         title=metadados.get("titulo", ""),
         objective=metadados.get("objetivo", ""),
         scope=metadados.get("escopo", ""),
@@ -64,6 +54,43 @@ def generate_epic_shape(texto: str) -> Epic:
         StoryStatus.DRAFT_VALIDATED if validate_epic(epic) else StoryStatus.PENDING_CLARIFICATION
     )
     return epic
+
+
+def generate_epic_shape(texto: str) -> Epic:
+    """Extrai os requisitos e o contexto do PRD, e define o Epic (titulo/objetivo/escopo/valor/criterios) a partir da fonte, antes de gerar qualquer User Story.
+
+    epic.prd_context preserva a parte do PRD que não é requisito funcional
+    (visão, requisitos não funcionais, restrições, critérios de sucesso, riscos,
+    dependências) — hoje descartada após a extração, mas necessária para
+    rastreabilidade completa do PRD (ver docs/standards/prd_standard.md).
+
+    O status reflete apenas o checklist automático (validate_epic) — review_epic
+    avalia coerência com as stories agrupadas, que ainda não existem neste ponto.
+
+    Sempre gera um único Epic com todos os requisitos — para permitir que um
+    PRD com frentes temáticas distintas vire múltiplos Epicos, use
+    generate_epics_shape.
+    """
+    requisitos = extract_requirements(texto)
+    prd_context = extract_prd_context(texto)
+    return _montar_epic("EPIC-001", texto, requisitos, prd_context)
+
+
+def generate_epics_shape(texto: str) -> list[Epic]:
+    """Extrai os requisitos, agrupa-os por coerência temática (identify_epic_groups) e define um Epic por grupo.
+
+    Se os requisitos formarem um único produto coeso, identify_epic_groups
+    retorna um grupo só e esta função gera um único Epic — a divisão em
+    múltiplos Epicos só acontece quando o próprio PRD sustenta frentes
+    temáticas distintas (GR-1: nunca inventar uma divisão que não exista).
+    """
+    requisitos = extract_requirements(texto)
+    prd_context = extract_prd_context(texto)
+    grupos = identify_epic_groups(texto, requisitos)
+    return [
+        _montar_epic(f"EPIC-{i:03d}", texto, grupo, prd_context)
+        for i, grupo in enumerate(grupos, start=1)
+    ]
 
 
 def generate_epic_stories(epic: Epic) -> Epic:
@@ -106,6 +133,11 @@ def generate_epic_stories(epic: Epic) -> Epic:
     epic.stories = stories
     epic.unresolved_items = unresolved
     return finalize_epic(epic)
+
+
+def generate_epics_stories(epics: list[Epic]) -> list[Epic]:
+    """Aplica generate_epic_stories a cada Epic já definido (um por grupo de generate_epics_shape)."""
+    return [generate_epic_stories(epic) for epic in epics]
 
 
 def generate_epic(texto: str) -> Epic:

@@ -240,3 +240,60 @@ def test_generate_epic_stories_divide_o_epico_ja_definido_em_stories(monkeypatch
     assert epic.status == StoryStatus.DRAFT_VALIDATED
     # o epico ja vinha com titulo/objetivo definidos por generate_epic_shape; nao mudam aqui
     assert epic.title == "titulo do epico"
+
+
+def test_generate_epics_shape_produz_um_epico_quando_grupo_e_unico(monkeypatch):
+    requisitos = [_fake_requirement(1), _fake_requirement(2)]
+    monkeypatch.setattr(workflow_module, "extract_requirements", lambda texto: requisitos)
+    monkeypatch.setattr(workflow_module, "extract_prd_context", lambda texto: PRDContext())
+    monkeypatch.setattr(workflow_module, "identify_epic_groups", lambda texto, reqs: [reqs])
+    monkeypatch.setattr(
+        workflow_module, "generate_epic_metadata", lambda texto, requisitos: _METADADOS_PADRAO
+    )
+    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: True)
+
+    epics = workflow_module.generate_epics_shape("fonte qualquer")
+
+    assert len(epics) == 1
+    assert epics[0].id == "EPIC-001"
+    assert {r.id for r in epics[0].requirements} == {"REQ-001", "REQ-002"}
+
+
+def test_generate_epics_shape_produz_multiplos_epicos_com_ids_sequenciais(monkeypatch):
+    grupo1 = [_fake_requirement(1)]
+    grupo2 = [_fake_requirement(2), _fake_requirement(3)]
+    monkeypatch.setattr(
+        workflow_module, "extract_requirements", lambda texto: grupo1 + grupo2
+    )
+    monkeypatch.setattr(workflow_module, "extract_prd_context", lambda texto: PRDContext())
+    monkeypatch.setattr(workflow_module, "identify_epic_groups", lambda texto, reqs: [grupo1, grupo2])
+    monkeypatch.setattr(
+        workflow_module, "generate_epic_metadata", lambda texto, requisitos: _METADADOS_PADRAO
+    )
+    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: True)
+
+    epics = workflow_module.generate_epics_shape("fonte qualquer")
+
+    assert [e.id for e in epics] == ["EPIC-001", "EPIC-002"]
+    assert {r.id for r in epics[0].requirements} == {"REQ-001"}
+    assert {r.id for r in epics[1].requirements} == {"REQ-002", "REQ-003"}
+    assert all(e.prd_context is not None for e in epics)
+
+
+def test_generate_epics_stories_delega_para_generate_epic_stories_por_epico(monkeypatch):
+    from aqua_qe_product_owner.models import Epic
+
+    chamados = []
+
+    def fake_generate_epic_stories(epic):
+        chamados.append(epic.id)
+        epic.status = StoryStatus.DRAFT_VALIDATED
+        return epic
+
+    monkeypatch.setattr(workflow_module, "generate_epic_stories", fake_generate_epic_stories)
+
+    epics = [Epic(id="EPIC-001", title="t1", objective="o1"), Epic(id="EPIC-002", title="t2", objective="o2")]
+    resultado = workflow_module.generate_epics_stories(epics)
+
+    assert chamados == ["EPIC-001", "EPIC-002"]
+    assert all(e.status == StoryStatus.DRAFT_VALIDATED for e in resultado)

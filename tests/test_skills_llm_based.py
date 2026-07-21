@@ -14,6 +14,7 @@ from aqua_qe_product_owner.skills import (
 from aqua_qe_product_owner.skills import generate_story as generate_story_module
 from aqua_qe_product_owner.skills import identify_actor as identify_actor_module
 from aqua_qe_product_owner.skills import identify_business_rules as identify_business_rules_module
+from aqua_qe_product_owner.skills import identify_epic_groups as identify_epic_groups_module
 from aqua_qe_product_owner.skills import identify_goal as identify_goal_module
 from aqua_qe_product_owner.skills import refine_prd as refine_prd_module
 from aqua_qe_product_owner.skills import review_prd as review_prd_module
@@ -257,3 +258,80 @@ def test_refine_prd_rewrites_fields_from_answers(monkeypatch):
 
     assert resultado.objective == "objetivo refinado"
     assert resultado.target_audience == "publico refinado"
+
+
+def _requisitos(*ids: str) -> list[Requirement]:
+    return [Requirement(id=i, text=f"texto {i}", source_reference=f"trecho {i}") for i in ids]
+
+
+def test_identify_epic_groups_maps_ids_back_to_requirements(monkeypatch):
+    monkeypatch.setattr(
+        identify_epic_groups_module,
+        "complete_json",
+        lambda prompt, system="", model=None: {
+            "grupos": [
+                {"requisitos_ids": ["REQ-001", "REQ-002"]},
+                {"requisitos_ids": ["REQ-003"]},
+            ]
+        },
+    )
+
+    requisitos = _requisitos("REQ-001", "REQ-002", "REQ-003")
+    grupos = identify_epic_groups_module.identify_epic_groups("texto", requisitos)
+
+    assert len(grupos) == 2
+    assert [r.id for r in grupos[0]] == ["REQ-001", "REQ-002"]
+    assert [r.id for r in grupos[1]] == ["REQ-003"]
+
+
+def test_identify_epic_groups_returns_single_group_when_llm_agrees(monkeypatch):
+    monkeypatch.setattr(
+        identify_epic_groups_module,
+        "complete_json",
+        lambda prompt, system="", model=None: {
+            "grupos": [{"requisitos_ids": ["REQ-001", "REQ-002"]}]
+        },
+    )
+
+    requisitos = _requisitos("REQ-001", "REQ-002")
+    grupos = identify_epic_groups_module.identify_epic_groups("texto", requisitos)
+
+    assert len(grupos) == 1
+    assert [r.id for r in grupos[0]] == ["REQ-001", "REQ-002"]
+
+
+def test_identify_epic_groups_falls_back_to_single_group_on_incomplete_coverage(monkeypatch):
+    monkeypatch.setattr(
+        identify_epic_groups_module,
+        "complete_json",
+        lambda prompt, system="", model=None: {
+            "grupos": [{"requisitos_ids": ["REQ-001"]}]  # REQ-002 ficou de fora
+        },
+    )
+
+    requisitos = _requisitos("REQ-001", "REQ-002")
+    grupos = identify_epic_groups_module.identify_epic_groups("texto", requisitos)
+
+    assert grupos == [requisitos]
+
+
+def test_identify_epic_groups_falls_back_to_single_group_on_duplicate_id(monkeypatch):
+    monkeypatch.setattr(
+        identify_epic_groups_module,
+        "complete_json",
+        lambda prompt, system="", model=None: {
+            "grupos": [
+                {"requisitos_ids": ["REQ-001"]},
+                {"requisitos_ids": ["REQ-001", "REQ-002"]},
+            ]
+        },
+    )
+
+    requisitos = _requisitos("REQ-001", "REQ-002")
+    grupos = identify_epic_groups_module.identify_epic_groups("texto", requisitos)
+
+    assert grupos == [requisitos]
+
+
+def test_identify_epic_groups_returns_empty_for_no_requirements():
+    assert identify_epic_groups_module.identify_epic_groups("texto", []) == []

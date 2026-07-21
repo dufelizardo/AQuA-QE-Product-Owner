@@ -32,6 +32,7 @@ skills:
   - create_confluence_page
   - extract_requirements
   - extract_prd_context
+  - identify_epic_groups
   - identify_actor
   - identify_goal
   - identify_business_rules

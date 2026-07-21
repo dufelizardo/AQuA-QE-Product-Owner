@@ -2,7 +2,7 @@
 
 > Documentação das skills implementadas em `../../src/aqua_qe_product_owner/skills/`, no formato definido em `../standards/skill_standard.md`. Ordem conforme `agent_manifest.yaml`. Tipos de entrada/saída referem-se às estruturas de `../../src/aqua_qe_product_owner/models/`.
 >
-> `extract_requirements`, `extract_prd_context`, `identify_actor`, `identify_goal`, `identify_business_rules`, `generate_story`, `generate_clarifying_questions`, `refine_story`, `generate_epic_metadata`, `generate_prd`, `generate_prd_clarifying_questions` e `refine_prd` usam um LLM local via Ollama (`../../src/aqua_qe_product_owner/services/llm_service.py`, modelo configurável por `OLLAMA_MODEL`, padrão `mistral`). `validate_story`, `validate_epic`, `validate_prd`, `format_prd_markdown` e `diff_story_versions`/`validate_traceability` são Python puro, sem LLM (ver `evaluation.md`). `review_story`, `review_epic` e `review_prd` usam um segundo LLM, diferente do gerador (`OLLAMA_REVIEW_MODEL`, padrão `phi4`), como revisor independente (LLM-como-juiz). `retrieve_chunks` usa embedding local (`services/embedding_service.py`, modelo `bge-m3`) e um Qdrant embutido/local (`services/rag_service.py`, sem servidor externo). `read_jira_issue`, `update_jira_issue`, `create_jira_epic` e `create_jira_story` usam a API REST do Jira Cloud (`services/jira_service.py`) — as três últimas só são chamadas após aceitação humana explícita no CLI (`run.py`), nunca automaticamente. `read_confluence_page` e `create_confluence_page` usam a API REST do Confluence Cloud (`services/confluence_service.py`), reaproveitando as mesmas credenciais do Jira (mesma conta Atlassian) — `create_confluence_page` também só é chamada após aceitação humana explícita.
+> `extract_requirements`, `extract_prd_context`, `identify_epic_groups`, `identify_actor`, `identify_goal`, `identify_business_rules`, `generate_story`, `generate_clarifying_questions`, `refine_story`, `generate_epic_metadata`, `generate_prd`, `generate_prd_clarifying_questions` e `refine_prd` usam um LLM local via Ollama (`../../src/aqua_qe_product_owner/services/llm_service.py`, modelo configurável por `OLLAMA_MODEL`, padrão `mistral`). `validate_story`, `validate_epic`, `validate_prd`, `format_prd_markdown` e `diff_story_versions`/`validate_traceability` são Python puro, sem LLM (ver `evaluation.md`). `review_story`, `review_epic` e `review_prd` usam um segundo LLM, diferente do gerador (`OLLAMA_REVIEW_MODEL`, padrão `phi4`), como revisor independente (LLM-como-juiz). `retrieve_chunks` usa embedding local (`services/embedding_service.py`, modelo `bge-m3`) e um Qdrant embutido/local (`services/rag_service.py`, sem servidor externo). `read_jira_issue`, `update_jira_issue`, `create_jira_epic` e `create_jira_story` usam a API REST do Jira Cloud (`services/jira_service.py`) — as três últimas só são chamadas após aceitação humana explícita no CLI (`run.py`), nunca automaticamente. `read_confluence_page` e `create_confluence_page` usam a API REST do Confluence Cloud (`services/confluence_service.py`), reaproveitando as mesmas credenciais do Jira (mesma conta Atlassian) — `create_confluence_page` também só é chamada após aceitação humana explícita.
 
 ## read_text_file
 
@@ -139,14 +139,23 @@
 - **Erros esperados**: nenhum.
 - **Dependências**: nenhuma outra skill; usada pelo CLI (`run.py`) após a aceitação final da história.
 
+## identify_epic_groups
+
+- **Descrição**: agrupa os requisitos extraídos de um PRD em Épicos candidatos, por coerência temática — permite que um PRD com frentes distintas (ex.: "Agendamento" + "Notificações" + "Pagamento") vire múltiplos Épicos em vez de um só. Se os requisitos formarem um único produto coeso, retorna **um grupo só** — nunca força divisão que não exista no texto (GR-1). Usada por `workflow/generate_epic.py::generate_epics_shape`.
+- **Entrada**: `texto: str` (fonte completa), `requisitos: list[Requirement]` (já extraídos por `extract_requirements`).
+- **Saída**: `list[list[Requirement]]` — um ou mais grupos, cada um com os `Requirement` originais (não strings/IDs soltos).
+- **Efeitos colaterais**: chamada ao LLM local (`llm_service`).
+- **Erros esperados**: nenhum lançado — se a resposta do LLM não cobrir todos os requisitos exatamente uma vez (ID duplicado, ID inexistente, requisito faltando) ou vier malformada, a skill cai no fallback seguro de um único grupo com todos os requisitos, em vez de falhar ou perder rastreabilidade.
+- **Dependências**: consome os requisitos extraídos por `extract_requirements`.
+
 ## generate_epic_metadata
 
-- **Descrição**: define título, objetivo, escopo, valor de negócio e critérios de aceitação de alto nível de um Épico, a partir da fonte completa e dos requisitos candidatos extraídos dela — roda **antes** de qualquer User Story ser gerada (ver `workflow/generate_epic.py::generate_epic_shape`), para que o Épico possa ser validado com o humano sem pagar o custo de gerar todas as stories primeiro.
-- **Entrada**: `texto: str` (fonte completa), `requisitos: list[Requirement]` (já extraídos por `extract_requirements`).
+- **Descrição**: define título, objetivo, escopo, valor de negócio e critérios de aceitação de alto nível de um Épico, a partir da fonte completa e dos requisitos candidatos de **um grupo** (ver `identify_epic_groups`) — roda **antes** de qualquer User Story ser gerada (ver `workflow/generate_epic.py::generate_epics_shape`), para que cada Épico candidato possa ser validado com o humano sem pagar o custo de gerar todas as stories primeiro.
+- **Entrada**: `texto: str` (fonte completa), `requisitos: list[Requirement]` (um grupo de `identify_epic_groups`, ou todos os requisitos quando há um único Épico).
 - **Saída**: `dict` no formato `{"titulo", "objetivo", "escopo", "valor", "criterios_aceitacao": [...]}`.
 - **Efeitos colaterais**: chamada ao LLM local (`llm_service`).
 - **Erros esperados**: resposta do LLM não é JSON válido (`ValueError`).
-- **Dependências**: consome os requisitos extraídos por `extract_requirements` — não depende de nenhuma User Story já gerada.
+- **Dependências**: consome um grupo de requisitos de `identify_epic_groups` (ou a lista completa de `extract_requirements`, no caminho de um único Épico) — não depende de nenhuma User Story já gerada.
 
 ## validate_epic
 

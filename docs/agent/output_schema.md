@@ -54,35 +54,39 @@ Gerado por `generate_prd` a partir de uma ideia informal (não de uma fonte já 
 
 ## Schema de saída em modo lote (Epic)
 
+> Um PRD pode gerar **um ou vários** Épicos — `identify_epic_groups` agrupa os requisitos extraídos por coerência temática antes de `generate_epic_metadata` rodar por grupo (ver `workflow/generate_epic.py::generate_epics_shape`). Se o PRD for coeso, o agrupamento colapsa em um único grupo (comportamento padrão, sem mudança visível). A saída do modo lote é sempre `list[Epic]` (`epics`), com um elemento por Épico identificado, cada `id` sequencial (`EPIC-001`, `EPIC-002`, ...).
+
 ```
 {
-  "epic": {
-    "id": "<string, ex.: EPIC-001>",
-    "title": "<string — gerado por generate_epic_metadata>",
-    "objective": "<string — gerado por generate_epic_metadata>",
-    "scope": "<string — gerado por generate_epic_metadata>",
-    "value": "<string — valor de negócio, gerado por generate_epic_metadata>",
-    "acceptance_criteria": ["<mesma estrutura Given-When-Then da User Story, em nível de Épico>"],
-    "requirements": ["<Requirement extraído da fonte que originou o Épico — ver extract_requirements>"],
-    "prd_context": {
-      "vision": "<string, opcional>",
-      "problem": "<string, opcional>",
-      "objectives": ["<opcional>"],
-      "target_audience": "<string, opcional>",
-      "non_functional_requirements": ["<opcional>"],
-      "constraints": ["<opcional>"],
-      "success_criteria": ["<opcional>"],
-      "risks": ["<opcional>"],
-      "dependencies": ["<opcional>"]
-    },
-    "status": "draft_validated | pending_clarification | accepted",
-    "review_notes": ["<apontamento do revisor (review_epic), se houver>"]
-  },
-  "stories": ["<lista de objetos User Story, schema acima>"],
-  "unresolved_items": [
+  "epics": [
     {
-      "source_reference": "<trecho da fonte>",
-      "reason": "<motivo pelo qual não foi possível gerar uma história — ver RULE-004>"
+      "id": "<string, ex.: EPIC-001, EPIC-002, ...>",
+      "title": "<string — gerado por generate_epic_metadata>",
+      "objective": "<string — gerado por generate_epic_metadata>",
+      "scope": "<string — gerado por generate_epic_metadata>",
+      "value": "<string — valor de negócio, gerado por generate_epic_metadata>",
+      "acceptance_criteria": ["<mesma estrutura Given-When-Then da User Story, em nível de Épico>"],
+      "requirements": ["<Requirement do grupo (identify_epic_groups) que originou este Épico>"],
+      "prd_context": {
+        "vision": "<string, opcional>",
+        "problem": "<string, opcional>",
+        "objectives": ["<opcional>"],
+        "target_audience": "<string, opcional>",
+        "non_functional_requirements": ["<opcional>"],
+        "constraints": ["<opcional>"],
+        "success_criteria": ["<opcional>"],
+        "risks": ["<opcional>"],
+        "dependencies": ["<opcional>"]
+      },
+      "status": "draft_validated | pending_clarification | accepted",
+      "review_notes": ["<apontamento do revisor (review_epic), se houver>"],
+      "stories": ["<lista de objetos User Story, schema acima>"],
+      "unresolved_items": [
+        {
+          "source_reference": "<trecho da fonte>",
+          "reason": "<motivo pelo qual não foi possível gerar uma história — ver RULE-004>"
+        }
+      ]
     }
   ]
 }
@@ -90,9 +94,9 @@ Gerado por `generate_prd` a partir de uma ideia informal (não de uma fonte já 
 
 `prd_context` (`extract_prd_context`, ver `skills.md`) preserva a parte do PRD de origem que não é requisito funcional — visão, problema, objetivos, público-alvo, requisitos não funcionais, restrições, critérios de sucesso, riscos e dependências —, hoje descartada após a extração dos requisitos funcionais. Todos os campos são opcionais (string ou lista vazia quando não identificável, conforme GR-1).
 
-O Epic passa pelo mesmo ciclo `validate_epic` + `review_epic` (`workflow/generate_epic.py:finalize_epic`) que a User Story passa em `validate_story`/`review_story` — mesmos valores de `status` descritos abaixo, aplicados ao Épico como um todo. Antes do refinamento por story, o CLI roda `validate_traceability(epic)` (ver `skills.md`), verificando duplicidade entre stories, stories sem valor de negócio e requisitos órfãos.
+Cada Epic passa pelo mesmo ciclo `validate_epic` + `review_epic` (`workflow/generate_epic.py:finalize_epic`) que a User Story passa em `validate_story`/`review_story` — mesmos valores de `status` descritos abaixo, aplicados a cada Épico individualmente. Antes do refinamento por story, o CLI roda `validate_traceability(epic)` (ver `skills.md`) em cada Épico, verificando duplicidade entre stories, stories sem valor de negócio e requisitos órfãos.
 
-Ao aceitar o Épico (CLI, `run.py --criar-jira`), `create_jira_epic` cria o ticket no Jira e `create_jira_story` cria cada `UserStory` do Epic como ticket filho (`parent`), retornando as chaves criadas.
+Ao aceitar cada Épico (CLI, `run.py --criar-jira`, pergunta feita uma vez por Épico), `create_jira_epic` cria o ticket no Jira e `create_jira_story` cria cada `UserStory` daquele Epic como ticket filho (`parent`), retornando as chaves criadas.
 
 ## Valores válidos de `status`
 

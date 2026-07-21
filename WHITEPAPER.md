@@ -64,10 +64,11 @@ Em modo lote, o mesmo padrão se repete em nível de Épico, mas em **duas fases
 Entrada completa (.txt/Markdown/Confluence)
    → extract_requirements
    → extract_prd_context (visão, requisitos não funcionais, riscos, critérios de sucesso, restrições, dependências)
-   → generate_epic_metadata (a partir do texto + requisitos, SEM nenhuma story ainda)
+   → identify_epic_groups (agrupa os requisitos por coerência temática — 1 grupo se o PRD for coeso, N se cobrir frentes distintas)
+   → por grupo: generate_epic_metadata (a partir do texto + requisitos do grupo, SEM nenhuma story ainda)
    → validate_epic
-   → [checkpoint humano] "Continuar e gerar as User Stories deste Épico?"
-   → generate_epic_stories: para cada requisito → generate_story → validate_story → review_story
+   → [checkpoint humano] "Continuar e gerar as User Stories d{estes N Épicos / este Épico}?"
+   → por Épico: generate_epic_stories: para cada requisito → generate_story → validate_story → review_story
    → validate_traceability (stories duplicadas, sem valor, requisitos órfãos)
    → review_epic (agora com as stories existentes, avalia coerência real com o Épico)
    → refinamento humano-no-loop por story reprovada
@@ -76,19 +77,21 @@ Entrada completa (.txt/Markdown/Confluence)
 
 `generate_epic_metadata` depende apenas do texto de origem e dos requisitos extraídos — nunca das stories, que ainda não existem nesse ponto. Isso permite ao humano rejeitar ou pedir ajuste no Épico (título/objetivo/escopo/valor) **antes** de qualquer User Story ser gerada, evitando o desperdício de gerar um lote inteiro de stories sob um Épico com o escopo errado. Só depois que as stories existem é que `review_epic` consegue avaliar coerência real entre o objetivo do Épico e o que as stories entregam — por isso a revisão do Épico acontece em duas etapas: `validate_epic` (checklist automático, roda logo após a definição do Épico) e `review_epic` (LLM revisor, roda só depois das stories geradas).
 
+`identify_epic_groups` fecha a lacuna PRD→Épico(s): antes, um PRD com frentes temáticas distintas (ex.: "Agendamento" + "Notificações" + "Pagamento") sempre virava um único Épico artificialmente amplo, misturando tudo. Agora o agrupamento decide quantos Épicos fazem sentido — podendo ser um só, quando o PRD for coeso (comportamento padrão, sem mudança visível). Se a resposta do LLM não cobrir todos os requisitos exatamente uma vez, a skill cai no fallback seguro de um único grupo, nunca perdendo rastreabilidade nem inventando uma divisão inconsistente (GR-1). A relação é sempre unidirecional — um PRD gera um ou mais Épicos, nunca o contrário.
+
 `extract_prd_context` fecha uma lacuna de rastreabilidade real: um PRD típico (`docs/standards/prd_standard.md`) contém muito mais do que requisitos funcionais — visão, público-alvo, requisitos não funcionais, restrições, critérios de sucesso, riscos, dependências. Antes, só o texto bruto e a lista de requisitos funcionais sobreviviam ao processamento; todo esse outro conteúdo era lido pelo LLM mas nunca estruturado nem preservado. `epic.prd_context` guarda essa informação vinculada ao Épico, sem introduzir nenhuma camada nova de processo — apenas preserva o que já era lido.
 
 Camadas do código (`src/aqua_qe_product_owner/`):
 
 - **`models/`** — estruturas de dados: `UserStory`, `Epic` (com `UnresolvedItem`), `AcceptanceCriteria`, `BusinessRule`, `Actor`, `Requirement`, `PRDContext`, `PRDDraft`, e o enum `StoryStatus` (`draft_validated` / `pending_clarification` / `accepted`).
-- **`skills/`** — 30 funções, cada uma com um único efeito colateral e uma única responsabilidade (ver seção 5).
+- **`skills/`** — 31 funções, cada uma com um único efeito colateral e uma única responsabilidade (ver seção 5).
 - **`workflow/`** — orquestração da sequência de skills por caso de uso: `generate_prd.py` (`generate_prd_draft` → gera o PRD a partir de uma ideia; `refine_prd_draft` → refina com respostas humanas), `generate_user_story.py` (`finalize_story`), `generate_epic.py` (`generate_epic_shape` → define o Épico; `generate_epic_stories` → divide em User Stories e finaliza; `generate_epic` → wrapper de conveniência que encadeia as duas, sem checkpoint humano), `generate_acceptance.py`, `refine_story.py`.
 - **`orchestrator/product_owner.py`** — ponto de entrada único (`handle_request(entrada, modo)`), decide entre modo `"unitario"` e `"lote"`.
 - **`services/`** — integrações externas, introduzidas incrementalmente, uma por consumidor real: `llm_service` (Ollama), `embedding_service` (Ollama), `rag_service` (Qdrant embarcado), `jira_service` e `confluence_service` (REST API + httpx).
 
 Deliberadamente **não existe** uma camada de `Feature` entre Épico e User Story no código (só como template em `knowledge/templates/feature.md`). A avaliação registrada no projeto concluiu que essa camada tem valor real, mas custo desproporcional para o volume de PRDs testados até agora — fica para quando um PRD grande o suficiente justificar o agrupamento, em vez de ser construída especulativamente.
 
-## 5. As 30 skills
+## 5. As 31 skills
 
 Skills sem LLM (Python puro, determinísticas):
 
@@ -99,7 +102,7 @@ Skills sem LLM (Python puro, determinísticas):
 
 Skills com LLM gerador (`OLLAMA_MODEL`, padrão `mistral`):
 
-- `generate_prd`, `generate_prd_clarifying_questions`, `refine_prd`, `extract_requirements`, `extract_prd_context`, `identify_actor`, `identify_goal`, `identify_business_rules`, `generate_story`, `generate_clarifying_questions`, `refine_story`, `generate_epic_metadata`.
+- `generate_prd`, `generate_prd_clarifying_questions`, `refine_prd`, `extract_requirements`, `extract_prd_context`, `identify_epic_groups`, `identify_actor`, `identify_goal`, `identify_business_rules`, `generate_story`, `generate_clarifying_questions`, `refine_story`, `generate_epic_metadata`.
 
 Skills com LLM revisor independente (`OLLAMA_REVIEW_MODEL`, padrão `phi4` — deliberadamente um modelo diferente do gerador, para mitigar *self-preference bias*):
 
@@ -136,8 +139,8 @@ Importante: esse ciclo não é só um portão de aprovação. A resposta humana 
 
 - **PRD** (`--modo prd`) — o passo "Ideia → PRD" que faltava: `generate_prd` gera um PRD completo (contexto/problema, objetivo, público-alvo, escopo, fora de escopo, requisitos funcionais/não funcionais, critérios de sucesso, riscos e premissas — conforme `docs/standards/prd_standard.md`) a partir de uma ideia informal, passa pelo mesmo padrão `validate_prd` → `review_prd` → `generate_prd_clarifying_questions`/`refine_prd` (ciclo de refinamento humano-no-loop completo, seção 6) → aceite humano explícito. Uma vez aceito, `format_prd_markdown` produz o texto final, que pode ser exportado (`--saida`), publicado no Confluence (`--publicar-confluence`) e/ou virar a entrada do modo lote (o CLI pergunta se deve continuar e gerar o Épico a partir dele). Entrada via `--arquivo` ou `--texto`.
 - **Unitário** (`--modo unitario`) — uma única User Story por execução, com possibilidade de interação próxima a cada etapa. Entrada via `--arquivo`, `--texto` ou `--jira`.
-- **Lote/Épico** (`--modo lote`) — em duas fases: primeiro `extract_prd_context` + `generate_epic_metadata` definem título/objetivo/escopo/valor/critérios do Épico a partir do texto de origem e dos requisitos extraídos (`extract_requirements`) — **sem gerar nenhuma User Story ainda** — e `validate_epic` confere o checklist automático; o CLI então pergunta ao usuário se deve continuar. Só após confirmação, o Épico é dividido em User Stories (uma por requisito), cada uma passando pelo pipeline completo do modo unitário; itens ambíguos viram `unresolved_items` sem travar o restante do lote; `validate_traceability` e `review_epic` (agora com as stories existentes) rodam antes do refinamento por story. Entrada via `--arquivo` ou `--confluence`.
-- **`--criar-jira`** (modo lote) — após aceitação humana explícita, cria o ticket de Épico e cada User Story como ticket filho no Jira Cloud (vínculo `parent` simples, assume projeto *team-managed*).
+- **Lote/Épico(s)** (`--modo lote`) — em duas fases: primeiro `extract_prd_context` + `identify_epic_groups` (agrupa os requisitos extraídos por coerência temática — um PRD coeso vira um único Épico; um PRD com frentes distintas pode virar vários) + `generate_epic_metadata` por grupo definem título/objetivo/escopo/valor/critérios de cada Épico candidato a partir do texto de origem — **sem gerar nenhuma User Story ainda** — e `validate_epic` confere o checklist automático de cada um; o CLI então pergunta ao usuário se deve continuar (uma pergunta combinada, cobrindo todos os Épicos identificados). Só após confirmação, cada Épico é dividido em User Stories (uma por requisito do seu grupo), cada uma passando pelo pipeline completo do modo unitário; itens ambíguos viram `unresolved_items` sem travar o restante do lote; `validate_traceability` e `review_epic` (agora com as stories existentes) rodam antes do refinamento por story, um Épico de cada vez. Entrada via `--arquivo` ou `--confluence`.
+- **`--criar-jira`** (modo lote) — após aceitação humana explícita **de cada Épico** (pergunta individual, um Épico de cada vez), cria o ticket de Épico e cada User Story como ticket filho no Jira Cloud (vínculo `parent` simples, assume projeto *team-managed*).
 - **`--publicar-confluence`** (modo prd) — após aceitação humana explícita do PRD, pergunta o título e publica a página no Confluence Cloud (`create_confluence_page`), retornando a URL criada.
 
 ## 8. Integrações reais
@@ -156,7 +159,7 @@ Todas as operações de **escrita** exigem aceitação humana explícita antes d
 
 ## 10. Qualidade e cobertura de testes
 
-95 testes automatizados cobrem todos os módulos implementados (90% de cobertura de linha), todos com chamadas a Ollama/Jira/Confluence mockadas — rápidos, determinísticos, sem dependência de infraestrutura externa para rodar em CI. A avaliação do agente em produção combina três camadas que nunca se substituem (`docs/agent/evaluation.md`):
+103 testes automatizados cobrem todos os módulos implementados (90% de cobertura de linha), todos com chamadas a Ollama/Jira/Confluence mockadas — rápidos, determinísticos, sem dependência de infraestrutura externa para rodar em CI. A avaliação do agente em produção combina três camadas que nunca se substituem (`docs/agent/evaluation.md`):
 
 1. Checklist automático (`validate_story`/`validate_epic`) — sem LLM.
 2. LLM-como-juiz (`review_story`/`review_epic`) — modelo diferente do gerador.

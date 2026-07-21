@@ -21,7 +21,7 @@ Pipeline de uma única User Story: `Generate → Validate → Review → Refine 
 
 ![Fluxo modo lote (Épico)](svg/03-fluxo-modo-lote-epico.svg)
 
-Em duas fases: primeiro `extract_prd_context` (visão, requisitos não funcionais, riscos, critérios de sucesso, restrições, dependências) + `generate_epic_metadata` + `validate_epic` definem o Épico só a partir do texto e dos requisitos extraídos — **sem nenhuma story ainda** — e o usuário decide se quer continuar; só depois o mesmo pipeline do Diagrama 2 é aplicado a cada requisito, seguido de `validate_traceability` e `review_epic` (agora com as stories existentes, para avaliar coerência real).
+Em duas fases: primeiro `extract_prd_context` (visão, requisitos não funcionais, riscos, critérios de sucesso, restrições, dependências) + `identify_epic_groups` (agrupa os requisitos por coerência temática — um PRD coeso vira um único Épico, um PRD com frentes distintas pode virar vários) + `generate_epic_metadata`/`validate_epic` por grupo definem cada Épico candidato só a partir do texto e dos requisitos do seu grupo — **sem nenhuma story ainda** — e o usuário decide se quer continuar (uma pergunta cobrindo todos os Épicos identificados); só depois o mesmo pipeline do Diagrama 2 é aplicado a cada requisito de cada Épico, seguido de `validate_traceability` e `review_epic` (agora com as stories existentes, para avaliar coerência real), um Épico de cada vez.
 
 ## 4 — Ciclo de refinamento humano-no-loop
 

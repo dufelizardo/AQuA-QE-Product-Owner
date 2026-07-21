@@ -31,8 +31,8 @@ from aqua_qe_product_owner.skills.read_text_file import read_text_file  # noqa: 
 from aqua_qe_product_owner.skills.update_jira_issue import update_jira_issue  # noqa: E402
 from aqua_qe_product_owner.skills.validate_traceability import validate_traceability  # noqa: E402
 from aqua_qe_product_owner.workflow.generate_epic import (  # noqa: E402
-    generate_epic_shape,
-    generate_epic_stories,
+    generate_epics_shape,
+    generate_epics_stories,
 )
 from aqua_qe_product_owner.workflow.generate_prd import (  # noqa: E402
     generate_prd_draft,
@@ -197,8 +197,11 @@ def _criar_epico_no_jira(epic: Epic) -> None:
         print(f"  - {story.id} -> {story_key}")
 
 
-def _imprimir_epic_shape(epic: Epic) -> None:
-    print("\n--- Épico (escopo definido a partir do PRD, antes de gerar as Stories) ---")
+def _imprimir_epic_shape(epic: Epic, indice: int | None = None, total: int | None = None) -> None:
+    cabecalho = "Épico (escopo definido a partir do PRD, antes de gerar as Stories)"
+    if indice is not None and total is not None:
+        cabecalho = f"Épico {indice} de {total} — {cabecalho}"
+    print(f"\n--- {cabecalho} ---")
     aprovado = epic.status == StoryStatus.DRAFT_VALIDATED
     print(f"checklist automático (validate_epic): {'aprovado' if aprovado else 'reprovado'}")
     print(f"título: {epic.title}")
@@ -242,43 +245,56 @@ def _imprimir_epic_shape(epic: Epic) -> None:
             print(f"  dependências: {contexto.dependencies}")
 
 
-def _rodar_lote(texto: str, saida: str | None, refinar: bool, criar_jira: bool) -> None:
-    epic = generate_epic_shape(texto)
-    _imprimir_epic_shape(epic)
-
-    if not _perguntar_sim_nao("\nContinuar e gerar as User Stories deste Épico?"):
-        print("Execução interrompida: nenhuma User Story foi gerada.")
-        return
-
-    epic = generate_epic_stories(epic)
+def _processar_epic_aceito(epic: Epic, saida: str | None, refinar: bool, criar_jira: bool) -> None:
+    """Roda story-by-story a mesma sequência de sempre (imprimir, traceability, refinamento, export, Jira) para um Épico já com as Stories geradas."""
     _imprimir_epic(epic)
     _imprimir_traceability(epic)
 
+    pasta_epic = Path(saida) / epic.id if saida else None
+
     if refinar:
-        pasta_saida = Path(saida) if saida else None
-        if pasta_saida:
-            pasta_saida.mkdir(parents=True, exist_ok=True)
+        if pasta_epic:
+            pasta_epic.mkdir(parents=True, exist_ok=True)
         for i, story in enumerate(epic.stories):
             if story.status == StoryStatus.DRAFT_VALIDATED:
                 continue
-            print(f"\n=== refinando {story.id} ===")
+            print(f"\n=== refinando {story.id} ({epic.id}) ===")
             original = copy.deepcopy(story)
             story_refinada = _ciclo_de_refinamento(story)
             epic.stories[i] = story_refinada
             caminho_changelog = (
-                str(pasta_saida / f"{story.id}.changelog.md") if pasta_saida else None
+                str(pasta_epic / f"{story.id}.changelog.md") if pasta_epic else None
             )
             _processar_aceite(story_refinada, original, caminho_changelog, None)
 
     if saida:
-        pasta_saida = Path(saida)
-        pasta_saida.mkdir(parents=True, exist_ok=True)
+        pasta_epic.mkdir(parents=True, exist_ok=True)
         for story in epic.stories:
-            export_markdown(story, str(pasta_saida / f"{story.id}.md"))
-        print(f"exportado para: {pasta_saida}/")
+            export_markdown(story, str(pasta_epic / f"{story.id}.md"))
+        print(f"exportado para: {pasta_epic}/")
 
     if criar_jira:
         _criar_epico_no_jira(epic)
+
+
+def _rodar_lote(texto: str, saida: str | None, refinar: bool, criar_jira: bool) -> None:
+    epics = generate_epics_shape(texto)
+    total = len(epics)
+    for i, epic in enumerate(epics, start=1):
+        _imprimir_epic_shape(epic, indice=i, total=total)
+
+    pergunta = (
+        "\nContinuar e gerar as User Stories deste Épico?"
+        if total == 1
+        else f"\nContinuar e gerar as User Stories destes {total} Épicos?"
+    )
+    if not _perguntar_sim_nao(pergunta):
+        print("Execução interrompida: nenhuma User Story foi gerada.")
+        return
+
+    epics = generate_epics_stories(epics)
+    for epic in epics:
+        _processar_epic_aceito(epic, saida, refinar, criar_jira)
 
 
 def _imprimir_prd(draft: PRDDraft) -> None:
