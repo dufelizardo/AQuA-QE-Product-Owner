@@ -1,0 +1,418 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="AQuA-QE Product Owner" version="24.0.0" type="device">
+  <diagram id="camadas" name="1 - Arquitetura em camadas">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="950" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="bandEntrada" value="Entrada" style="rounded=0;whiteSpace=wrap;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontSize=13;fontStyle=1;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="920" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="ent1" value="txt" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=11;" vertex="1" parent="bandEntrada">
+          <mxGeometry x="24" y="35" width="168" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ent2" value="markdown" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=11;" vertex="1" parent="bandEntrada">
+          <mxGeometry x="200" y="35" width="168" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ent3" value="chat" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=11;" vertex="1" parent="bandEntrada">
+          <mxGeometry x="376" y="35" width="168" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ent4" value="jira" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=11;" vertex="1" parent="bandEntrada">
+          <mxGeometry x="552" y="35" width="168" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ent5" value="confluence" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=11;" vertex="1" parent="bandEntrada">
+          <mxGeometry x="728" y="35" width="168" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bandCLI" value="CLI" style="rounded=0;whiteSpace=wrap;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontSize=13;fontStyle=1;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="150" width="920" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cli1" value="run.py (parse de argumentos, orquestra o ciclo interativo no terminal)" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=11;" vertex="1" parent="bandCLI">
+          <mxGeometry x="260" y="25" width="400" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bandOrq" value="Orquestrador" style="rounded=0;whiteSpace=wrap;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontSize=13;fontStyle=1;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="240" width="920" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="orq1" value="orchestrator/product_owner.py — handle_request(entrada, modo)" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=11;" vertex="1" parent="bandOrq">
+          <mxGeometry x="200" y="30" width="520" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bandWorkflows" value="Workflows" style="rounded=0;whiteSpace=wrap;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontSize=13;fontStyle=1;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="340" width="920" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="wf1" value="generate_user_story&#10;(modo unitario)" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=11;" vertex="1" parent="bandWorkflows">
+          <mxGeometry x="25" y="35" width="210" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="wf2" value="generate_epic&#10;(modo lote)" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=11;" vertex="1" parent="bandWorkflows">
+          <mxGeometry x="245" y="35" width="210" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="wf3" value="generate_acceptance" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=11;" vertex="1" parent="bandWorkflows">
+          <mxGeometry x="465" y="35" width="210" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="wf4" value="refine_story" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=11;" vertex="1" parent="bandWorkflows">
+          <mxGeometry x="685" y="35" width="210" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bandSkills" value="Skills" style="rounded=0;whiteSpace=wrap;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontSize=13;fontStyle=1;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="450" width="920" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="sk1" value="Sem LLM&#10;validate_story, validate_epic,&#10;diff_story_versions,&#10;validate_traceability" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="bandSkills">
+          <mxGeometry x="8" y="30" width="176" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="sk2" value="LLM gerador (mistral)&#10;extract_requirements, identify_actor/&#10;goal/business_rules, generate_story,&#10;generate_clarifying_questions,&#10;refine_story, generate_epic_metadata" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="bandSkills">
+          <mxGeometry x="190" y="30" width="176" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="sk3" value="LLM revisor independente (phi4)&#10;review_story, review_epic" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="bandSkills">
+          <mxGeometry x="372" y="30" width="176" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="sk4" value="Embedding / RAG (bge-m3)&#10;retrieve_chunks" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="bandSkills">
+          <mxGeometry x="554" y="30" width="176" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="sk5" value="I/O externo&#10;read_text_file, read_jira_issue,&#10;read_confluence_page, export_markdown,&#10;update_jira_issue, create_jira_epic,&#10;create_jira_story" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="bandSkills">
+          <mxGeometry x="736" y="30" width="176" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bandModels" value="Models" style="rounded=0;whiteSpace=wrap;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontSize=13;fontStyle=1;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="580" width="920" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="mdl1" value="UserStory" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="bandModels">
+          <mxGeometry x="20" y="35" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mdl2" value="Epic" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="bandModels">
+          <mxGeometry x="168" y="35" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mdl3" value="AcceptanceCriteria" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="bandModels">
+          <mxGeometry x="316" y="35" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mdl4" value="BusinessRule" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="bandModels">
+          <mxGeometry x="464" y="35" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mdl5" value="Actor" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="bandModels">
+          <mxGeometry x="612" y="35" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mdl6" value="Requirement" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="bandModels">
+          <mxGeometry x="760" y="35" width="140" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bandServices" value="Services" style="rounded=0;whiteSpace=wrap;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontSize=13;fontStyle=1;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="690" width="920" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="svc1" value="llm_service" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="bandServices">
+          <mxGeometry x="8" y="35" width="176" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="svc2" value="embedding_service" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="bandServices">
+          <mxGeometry x="190" y="35" width="176" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="svc3" value="rag_service" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="bandServices">
+          <mxGeometry x="372" y="35" width="176" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="svc4" value="jira_service" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="bandServices">
+          <mxGeometry x="554" y="35" width="176" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="svc5" value="confluence_service" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="bandServices">
+          <mxGeometry x="736" y="35" width="176" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bandExternos" value="Sistemas externos" style="rounded=0;whiteSpace=wrap;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontSize=13;fontStyle=1;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="800" width="920" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="ext1" value="Ollama local&#10;(mistral, phi4, bge-m3)" style="rounded=1;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="bandExternos">
+          <mxGeometry x="8" y="35" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ext2" value="Qdrant embarcado&#10;(.data/qdrant/, sem servidor)" style="rounded=1;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="bandExternos">
+          <mxGeometry x="236" y="35" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ext3" value="Jira Cloud&#10;(REST API v3)" style="rounded=1;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="bandExternos">
+          <mxGeometry x="464" y="35" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ext4" value="Confluence Cloud&#10;(REST API v1)" style="rounded=1;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="bandExternos">
+          <mxGeometry x="692" y="35" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="bandEntrada" target="bandCLI"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="bandCLI" target="bandOrq"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="bandOrq" target="bandWorkflows"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="bandWorkflows" target="bandSkills"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e5" value="usa / produz" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=10;" edge="1" parent="1" source="bandSkills" target="bandModels"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e6" value="chama" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=10;" edge="1" parent="1" source="bandSkills" target="bandServices"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="bandServices" target="bandExternos"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="fluxounitario" name="2 - Fluxo modo unitario">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="1460" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="u_n1" value="Entrada&#10;(.txt/.md, chat ou ticket Jira)" style="ellipse;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="40" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="u_n2" value="read_text_file / read_jira_issue" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="130" width="300" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="u_n3" value="extract_requirements" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="210" width="300" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="u_n4" value="retrieve_chunks (opcional)&#10;RAG sobre knowledge/methodology/" style="rounded=1;whiteSpace=wrap;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="290" width="300" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="u_n5" value="identify_actor / identify_goal /&#10;identify_business_rules" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="370" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="u_n6" value="generate_story (LLM gerador - mistral)" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="460" width="300" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="u_d1" value="validate_story:&#10;passa no checklist&#10;INVEST/DoR?" style="rhombus;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="540" width="300" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="u_b1" value="PENDING_CLARIFICATION&#10;(RULE-004): agente para e pede&#10;esclarecimento ao usuario" style="rounded=1;whiteSpace=wrap;fillColor=#f8cecc;strokeColor=#b85450;dashed=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="760" y="555" width="280" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="u_n7" value="review_story (LLM revisor - phi4)" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="670" width="300" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="u_d2" value="Aprovado pelo&#10;revisor independente?" style="rhombus;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="750" width="300" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="u_b2" value="Ver Diagrama 4:&#10;Ciclo de refinamento&#10;humano-no-loop" style="shape=process;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="760" y="765" width="280" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="u_n8" value="export_markdown&#10;(status: draft_validated)" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="880" width="300" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="u_d3" value="Aceite humano&#10;explicito?" style="rhombus;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="960" width="300" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="u_b3" value="Nao aceito:&#10;permanece draft_validated&#10;(aguardando novo ciclo)" style="rounded=1;whiteSpace=wrap;fillColor=#f8cecc;strokeColor=#b85450;dashed=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="760" y="975" width="280" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="u_n9" value="status: ACCEPTED" style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="1090" width="300" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="u_d4" value="Origem era um&#10;ticket Jira?" style="rhombus;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="1170" width="300" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="u_n10" value="update_jira_issue&#10;(write-back no ticket, sob confirmacao)" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="1300" width="300" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="u_end" value="Fim" style="ellipse;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="1390" width="300" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ue1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="u_n1" target="u_n2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ue2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="u_n2" target="u_n3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ue3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="u_n3" target="u_n4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ue4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="u_n4" target="u_n5"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ue5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="u_n5" target="u_n6"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ue6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="u_n6" target="u_d1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ue7" value="Nao" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;" edge="1" parent="1" source="u_d1" target="u_b1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ue8" value="Sim" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;" edge="1" parent="1" source="u_d1" target="u_n7"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ue9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="u_n7" target="u_d2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ue10" value="Nao" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;" edge="1" parent="1" source="u_d2" target="u_b2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ue11" value="Sim" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;" edge="1" parent="1" source="u_d2" target="u_n8"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ue12" value="story refinada&#10;(revalidar)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=10;exitX=1;exitY=0;entryX=1;entryY=0.5;" edge="1" parent="1" source="u_b2" target="u_d1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ue13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="u_n8" target="u_d3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ue14" value="Nao" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;" edge="1" parent="1" source="u_d3" target="u_b3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ue15" value="Sim" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;" edge="1" parent="1" source="u_d3" target="u_n9"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ue16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="u_n9" target="u_d4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ue17" value="Sim" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;" edge="1" parent="1" source="u_d4" target="u_n10"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ue18" value="Nao" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;exitX=0;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="u_d4" target="u_end"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ue19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="u_n10" target="u_end"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="fluxoepico" name="3 - Fluxo modo lote (Epico)">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1150" pageHeight="1700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="e_n1" value="Entrada completa&#10;(.txt/.md ou pagina Confluence)" style="ellipse;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="40" width="340" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n2" value="read_text_file / read_confluence_page" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="130" width="340" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n3" value="extract_requirements&#10;(lista de requisitos candidatos)" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="210" width="340" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_note1" value="Para cada requisito extraido:" style="text;align=center;fontStyle=2;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="290" width="340" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n4" value="identify_actor / identify_goal /&#10;identify_business_rules" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="330" width="340" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e_d1" value="Ator e objetivo&#10;identificados com confianca?" style="rhombus;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="410" width="340" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n5" value="Nao: unresolved_items += item&#10;(nao trava o restante do lote)" style="rounded=1;whiteSpace=wrap;fillColor=#f8cecc;strokeColor=#b85450;dashed=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="800" y="430" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n6" value="Sim: gera a story completa&#10;(mesmo pipeline do Diagrama 2:&#10;generate_story -&gt; validate_story -&gt; review_story)" style="shape=process;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="530" width="340" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n7" value="story draft_validated adicionada&#10;a epic.stories" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="620" width="340" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n8" value="generate_epic_metadata&#10;(titulo, objetivo, escopo, valor, criterios)" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="710" width="340" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n9" value="validate_epic (checklist Python puro)" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="790" width="340" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n10" value="review_epic (LLM revisor - phi4)" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="870" width="340" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n11" value="validate_traceability:&#10;stories_duplicadas, stories_sem_valor,&#10;requisitos_orfaos" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="950" width="340" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n12" value="Refinamento por story&#10;(ver Diagrama 4, por story reprovada)" style="shape=process;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="1040" width="340" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e_d2" value="Aceite humano&#10;explicito do Epico?" style="rhombus;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="1130" width="340" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="e_bno" value="Permanece draft_validated /&#10;pending_clarification" style="rounded=1;whiteSpace=wrap;fillColor=#f8cecc;strokeColor=#b85450;dashed=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="800" y="1150" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n13" value="status Epico: ACCEPTED" style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="1260" width="340" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_d3" value="Usuario pediu&#10;--criar-jira?" style="rhombus;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="1340" width="340" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n14" value="create_jira_epic -&gt; cria ticket Epico" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="1470" width="340" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n15" value="create_jira_story (para cada story)&#10;-&gt; cria tickets filhos" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="1550" width="340" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_end" value="Fim" style="ellipse;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="1630" width="340" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ee1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="e_n1" target="e_n2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="e_n2" target="e_n3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="e_n3" target="e_note1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="e_note1" target="e_n4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="e_n4" target="e_d1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee6" value="Nao" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;" edge="1" parent="1" source="e_d1" target="e_n5"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee7" value="Sim" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;" edge="1" parent="1" source="e_d1" target="e_n6"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="e_n6" target="e_n7"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee9" value="proximo requisito" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=10;exitX=0;exitY=0;entryX=0;entryY=0.5;dashed=1;" edge="1" parent="1" source="e_n7" target="e_note1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee10" value="todos requisitos processados" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=10;" edge="1" parent="1" source="e_n7" target="e_n8"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="e_n8" target="e_n9"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="e_n9" target="e_n10"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="e_n10" target="e_n11"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="e_n11" target="e_n12"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="e_n12" target="e_d2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee16" value="Nao" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;" edge="1" parent="1" source="e_d2" target="e_bno"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee17" value="Sim" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;" edge="1" parent="1" source="e_d2" target="e_n13"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="e_n13" target="e_d3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee19" value="Sim" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;" edge="1" parent="1" source="e_d3" target="e_n14"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee20" value="Nao" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;exitX=0;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="e_d3" target="e_end"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="e_n14" target="e_n15"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="e_n15" target="e_end"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="refinamento" name="4 - Ciclo de refinamento humano-no-loop">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="r_n1" value="review_story / review_epic reprova" style="ellipse;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="40" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="r_n2" value="review_notes: apontamentos concretos&#10;(ex.: criterio nao cobre caso de erro X)" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="120" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="r_n3" value="generate_clarifying_questions&#10;(LLM gerador - mistral)" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="200" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="r_n4" value="Perguntas apresentadas no terminal&#10;(run.py --refinar)" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="280" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="r_n5" value="Humano responde&#10;(contexto real - nao o LLM&#10;adivinhando sozinho)" style="rounded=1;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="360" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r_n6" value="refine_story: reescreve description,&#10;business_rules e acceptance_criteria" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="450" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="r_n7" value="Revalida: validate_story + review_story" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="530" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="r_d1" value="Aprovado&#10;agora?" style="rhombus;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="610" width="320" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="r_n8" value="Aceite humano explicito&#10;(status -&gt; ACCEPTED)" style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="740" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="r_n9" value="diff_story_versions:&#10;changelog (regras/criterios novos&#10;vs. descontinuados)" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="820" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r_d2" value="Origem era&#10;ticket Jira?" style="rhombus;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="910" width="320" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="r_n10" value="Pergunta se persiste no ticket&#10;-&gt; update_jira_issue" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="1040" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r_end" value="Fim" style="ellipse;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="1130" width="320" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="re1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="r_n1" target="r_n2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="re2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="r_n2" target="r_n3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="re3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="r_n3" target="r_n4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="re4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="r_n4" target="r_n5"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="re5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="r_n5" target="r_n6"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="re6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="r_n6" target="r_n7"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="re7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="r_n7" target="r_d1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="re8" value="Nao (novo ciclo com&#10;novos review_notes)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=10;exitX=1;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="r_d1" target="r_n3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="re9" value="Sim" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;" edge="1" parent="1" source="r_d1" target="r_n8"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="re10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="r_n8" target="r_n9"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="re11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="r_n9" target="r_d2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="re12" value="Sim" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;" edge="1" parent="1" source="r_d2" target="r_n10"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="re13" value="Nao" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;exitX=0;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="r_d2" target="r_end"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="re14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="r_n10" target="r_end"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="integracoes" name="5 - Integracoes externas">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1120" pageHeight="880" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="i_center" value="Agente&#10;(src/aqua_qe_product_owner/)" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="440" y="440" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="i_ollama" value="Ollama local&#10;(host: OLLAMA_BASE_URL)&#10;&#10;mistral - gerador&#10;phi4 - revisor independente&#10;bge-m3 - embeddings" style="rounded=1;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="320" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="i_qdrant" value="Qdrant embarcado&#10;(.data/qdrant/, sem servidor)" style="rounded=1;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="760" y="120" width="300" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="i_jira" value="Jira Cloud&#10;REST API v3&#10;Basic Auth (e-mail + API token)&#10;leitura / escrita / criacao" style="rounded=1;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="680" width="320" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="i_confluence" value="Confluence Cloud&#10;REST API v1&#10;(mesmas credenciais do Jira)&#10;leitura de pagina" style="rounded=1;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="760" y="680" width="300" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ie1" value="llm_service /&#10;embedding_service" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=10;" edge="1" parent="1" source="i_center" target="i_ollama"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ie2" value="rag_service" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=10;" edge="1" parent="1" source="i_center" target="i_qdrant"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ie3" value="jira_service" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=10;" edge="1" parent="1" source="i_center" target="i_jira"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ie4" value="confluence_service" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=10;" edge="1" parent="1" source="i_center" target="i_confluence"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
