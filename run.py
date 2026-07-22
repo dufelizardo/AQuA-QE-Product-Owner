@@ -149,17 +149,16 @@ def _rodar_unitario(texto: str, saida: str | None, jira_key: str | None, refinar
     story = handle_request(texto, modo="unitario")
     _imprimir_story(story)
 
+    original = copy.deepcopy(story)
     if refinar:
-        original = copy.deepcopy(story)
         story = _ciclo_de_refinamento(story)
 
-    if saida:
+    caminho_changelog = f"{saida}.changelog.md" if saida else None
+    _processar_aceite(story, original, caminho_changelog, jira_key)
+
+    if saida and story.status == StoryStatus.ACCEPTED:
         export_markdown(story, saida)
         print(f"exportado para: {saida}")
-
-    if refinar:
-        caminho_changelog = f"{saida}.changelog.md" if saida else None
-        _processar_aceite(story, original, caminho_changelog, jira_key)
 
 
 def _imprimir_epic(epic: Epic) -> None:
@@ -504,7 +503,8 @@ def main() -> None:
         action="store_true",
         help=(
             "Ativa o ciclo interativo de perguntas/refinamento para histórias "
-            "(ou PRDs, no modo prd) não aprovados, com prompt final de aceitação."
+            "(ou PRDs, no modo prd) não aprovados, antes do aceite humano "
+            "(que é sempre perguntado, com ou sem esta flag)."
         ),
     )
     parser.add_argument(
