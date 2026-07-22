@@ -159,7 +159,7 @@ All **write** operations require explicit human acceptance before firing — the
 
 ## 10. Quality and test coverage
 
-113 automated tests cover every implemented module (91% line coverage), all with Ollama/Jira/Confluence calls mocked — fast, deterministic, no dependency on external infrastructure to run in CI. Evaluating the agent in production combines three layers that never substitute for one another (`docs/agent/evaluation.md`):
+117 automated tests cover every implemented module (91% line coverage), all with Ollama/Jira/Confluence calls mocked — fast, deterministic, no dependency on external infrastructure to run in CI. Evaluating the agent in production combines three layers that never substitute for one another (`docs/agent/evaluation.md`):
 
 1. Automatic checklist (`validate_story`/`validate_epic`) — no LLM.
 2. LLM-as-judge (`review_story`/`review_epic`) — a different model from the generator.

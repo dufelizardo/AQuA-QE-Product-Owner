@@ -1,6 +1,14 @@
 from ..models import PRDDraft
 from ..services.llm_service import complete_json
 
+
+def _como_texto(valor: object) -> str:
+    """Normaliza um campo que deveria ser texto (escopo/fora_de_escopo), mas o LLM às vezes retorna como lista."""
+    if isinstance(valor, list):
+        return "; ".join(str(item) for item in valor)
+    return str(valor) if valor else ""
+
+
 _SYSTEM = (
     "Você refina um PRD existente com base nas respostas que quem propôs a "
     "ideia deu às perguntas de esclarecimento levantadas por um revisor. "
@@ -40,8 +48,8 @@ def refine_prd(draft: PRDDraft, respostas: list[dict]) -> PRDDraft:
     draft.context_problem = dados.get("contexto_problema") or draft.context_problem
     draft.objective = dados.get("objetivo") or draft.objective
     draft.target_audience = dados.get("publico_alvo") or draft.target_audience
-    draft.scope = dados.get("escopo") or draft.scope
-    draft.out_of_scope = dados.get("fora_de_escopo") or draft.out_of_scope
+    draft.scope = _como_texto(dados.get("escopo")) or draft.scope
+    draft.out_of_scope = _como_texto(dados.get("fora_de_escopo")) or draft.out_of_scope
     draft.functional_requirements = dados.get("requisitos_funcionais") or draft.functional_requirements
     draft.non_functional_requirements = (
         dados.get("requisitos_nao_funcionais") or draft.non_functional_requirements

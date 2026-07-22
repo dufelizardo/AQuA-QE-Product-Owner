@@ -1,6 +1,14 @@
 from ..models import PRDDraft
 from ..services.llm_service import complete_json
 
+
+def _como_texto(valor: object) -> str:
+    """Normaliza um campo que deveria ser texto (escopo/fora_de_escopo), mas o LLM às vezes retorna como lista."""
+    if isinstance(valor, list):
+        return "; ".join(str(item) for item in valor)
+    return str(valor) if valor else ""
+
+
 _SYSTEM = (
     "Você escreve um PRD (Product Requirements Document) completo a partir de "
     "uma ideia informal, seguindo a estrutura padrão de mercado. Baseie-se "
@@ -37,8 +45,8 @@ def generate_prd(ideia: str) -> PRDDraft:
         context_problem=dados.get("contexto_problema") or "",
         objective=dados.get("objetivo") or "",
         target_audience=dados.get("publico_alvo") or "",
-        scope=dados.get("escopo") or "",
-        out_of_scope=dados.get("fora_de_escopo") or "",
+        scope=_como_texto(dados.get("escopo")),
+        out_of_scope=_como_texto(dados.get("fora_de_escopo")),
         functional_requirements=dados.get("requisitos_funcionais") or [],
         non_functional_requirements=dados.get("requisitos_nao_funcionais") or [],
         success_criteria=dados.get("criterios_sucesso") or [],
