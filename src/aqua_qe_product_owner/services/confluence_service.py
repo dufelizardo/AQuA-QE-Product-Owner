@@ -79,6 +79,36 @@ def create_page(
     return resposta.json()["id"]
 
 
+def update_page(page_id: str, texto: str) -> None:
+    """Atualiza o corpo de uma página existente no Confluence Cloud a partir de texto simples, mantendo título e id."""
+    base_url, email, token = _credenciais()
+
+    atual = httpx.get(
+        f"{base_url}/wiki/rest/api/content/{page_id}",
+        auth=(email, token),
+        params={"expand": "version"},
+        timeout=30,
+    )
+    atual.raise_for_status()
+    dados = atual.json()
+
+    resposta = httpx.put(
+        f"{base_url}/wiki/rest/api/content/{page_id}",
+        auth=(email, token),
+        json={
+            "id": page_id,
+            "type": "page",
+            "title": dados["title"],
+            "version": {"number": dados["version"]["number"] + 1},
+            "body": {
+                "storage": {"value": _texto_para_storage(texto), "representation": "storage"}
+            },
+        },
+        timeout=30,
+    )
+    resposta.raise_for_status()
+
+
 def get_page_text(page_id: str) -> str:
     """Busca uma página no Confluence Cloud e retorna título + corpo como texto simples."""
     base_url, email, token = _credenciais()

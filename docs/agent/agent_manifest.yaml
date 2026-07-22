@@ -32,6 +32,7 @@ skills:
   - refine_prd
   - format_prd_markdown
   - create_confluence_page
+  - update_confluence_page
   - extract_requirements
   - extract_prd_context
   - identify_epic_groups

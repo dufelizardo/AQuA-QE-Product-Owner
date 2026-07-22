@@ -300,3 +300,12 @@
 - **Efeitos colaterais**: chamada HTTP `POST` à API REST do Confluence Cloud (`services/confluence_service.py::create_page`); requer `CONFLUENCE_SPACE_KEY` no `.env` (além das credenciais do Jira, reaproveitadas).
 - **Erros esperados**: credenciais/config ausentes (`KeyError`); erro HTTP via `httpx` (ex.: espaço inexistente ou sem permissão).
 - **Dependências**: chamada apenas após aceitação explícita do usuário no CLI (`run.py --modo prd --publicar-confluence`), nunca automaticamente.
+
+## update_confluence_page
+
+- **Descrição**: persiste a versão atual de um PRD aceito de volta numa página já existente do Confluence Cloud (mesmo id/título, corpo substituído), em vez de criar uma página nova. Paridade com `update_jira_issue` para o lado Confluence.
+- **Entrada**: `page_id: str`, `draft: PRDDraft`.
+- **Saída**: `None`.
+- **Efeitos colaterais**: `GET` (busca a versão atual da página) seguido de `PUT` (`services/confluence_service.py::update_page`) na API REST do Confluence Cloud, incrementando o número de versão da página.
+- **Erros esperados**: credenciais/config ausentes (`KeyError`); erro HTTP via `httpx` (ex.: página inexistente ou sem permissão de edição).
+- **Dependências**: ainda não está conectada a nenhum fluxo do CLI (`run.py`) — hoje só é chamável diretamente como skill; diferente de `update_jira_issue`, que já é acionado pelo ciclo de refinamento interativo.

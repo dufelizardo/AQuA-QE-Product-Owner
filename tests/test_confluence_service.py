@@ -93,3 +93,30 @@ def test_create_page_includes_ancestors_when_parent_given(monkeypatch):
     confluence_service.create_page("AQUAQE", "Titulo", "Corpo", parent_page_id="163841")
 
     assert captured["json"]["ancestors"] == [{"id": "163841"}]
+
+
+def test_update_page_fetches_current_version_and_puts_incremented(monkeypatch):
+    monkeypatch.setenv("JIRA_BASE_URL", "https://example.atlassian.net")
+    monkeypatch.setenv("JIRA_EMAIL", "user@example.com")
+    monkeypatch.setenv("JIRA_API_TOKEN", "token")
+
+    def fake_get(url, auth=None, params=None, timeout=None):
+        assert url == "https://example.atlassian.net/wiki/rest/api/content/163841"
+        assert params == {"expand": "version"}
+        return _FakeResponse({"title": "PRD existente", "version": {"number": 1}})
+
+    captured = {}
+
+    def fake_put(url, auth=None, json=None, timeout=None):
+        captured.update(url=url, json=json)
+        return _FakeResponse({"version": {"number": 2}})
+
+    monkeypatch.setattr(httpx, "get", fake_get)
+    monkeypatch.setattr(httpx, "put", fake_put)
+
+    confluence_service.update_page("163841", "Corpo atualizado")
+
+    assert captured["url"] == "https://example.atlassian.net/wiki/rest/api/content/163841"
+    assert captured["json"]["title"] == "PRD existente"
+    assert captured["json"]["version"] == {"number": 2}
+    assert captured["json"]["body"]["storage"]["value"] == "<p>Corpo atualizado</p>"

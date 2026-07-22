@@ -73,7 +73,7 @@
         <mxCell id="sk4" value="Embedding / RAG (bge-m3)&#10;retrieve_chunks" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="bandSkills">
           <mxGeometry x="554" y="30" width="176" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="sk5" value="I/O externo&#10;read_text_file, read_jira_issue,&#10;read_confluence_page, export_markdown,&#10;update_jira_issue, create_jira_epic,&#10;create_jira_story, create_confluence_page,&#10;parse_chat_transcript, format_chat_transcript" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=9;" vertex="1" parent="bandSkills">
+        <mxCell id="sk5" value="I/O externo&#10;read_text_file, read_jira_issue,&#10;read_confluence_page, export_markdown,&#10;update_jira_issue, create_jira_epic,&#10;create_jira_story, create_confluence_page,&#10;update_confluence_page,&#10;parse_chat_transcript, format_chat_transcript" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=8;" vertex="1" parent="bandSkills">
           <mxGeometry x="736" y="30" width="176" height="90" as="geometry" />
         </mxCell>
 
