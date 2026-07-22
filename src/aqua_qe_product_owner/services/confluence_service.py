@@ -47,11 +47,41 @@ def _storage_para_texto(storage_html: str) -> str:
 
 
 def _texto_para_storage(texto: str) -> str:
-    """Converte texto simples no storage format (XHTML) do Confluence, um parágrafo por linha não vazia."""
-    paragrafos = [
-        f"<p>{html.escape(linha)}</p>" for linha in texto.splitlines() if linha.strip()
-    ]
-    return "".join(paragrafos)
+    """Converte Markdown simples (#/##/### e listas com "- ") no storage format (XHTML) do Confluence.
+
+    Usado para publicar o PRD (produzido por format_prd_markdown), que é
+    sempre Markdown — por isso "# "/"## "/"### " viram h1/h2/h3 e linhas
+    consecutivas com "- " viram uma lista; o restante vira parágrafo.
+    """
+    partes: list[str] = []
+    itens_lista: list[str] = []
+
+    def fechar_lista() -> None:
+        if itens_lista:
+            partes.append("<ul>" + "".join(f"<li>{item}</li>" for item in itens_lista) + "</ul>")
+            itens_lista.clear()
+
+    for linha in texto.splitlines():
+        linha = linha.strip()
+        if not linha:
+            continue
+        if linha.startswith("### "):
+            fechar_lista()
+            partes.append(f"<h3>{html.escape(linha[4:])}</h3>")
+        elif linha.startswith("## "):
+            fechar_lista()
+            partes.append(f"<h2>{html.escape(linha[3:])}</h2>")
+        elif linha.startswith("# "):
+            fechar_lista()
+            partes.append(f"<h1>{html.escape(linha[2:])}</h1>")
+        elif linha.startswith("- "):
+            itens_lista.append(html.escape(linha[2:]))
+        else:
+            fechar_lista()
+            partes.append(f"<p>{html.escape(linha)}</p>")
+
+    fechar_lista()
+    return "".join(partes)
 
 
 def create_page(

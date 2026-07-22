@@ -54,6 +54,20 @@ def test_texto_para_storage_wraps_lines_in_paragraphs_and_escapes_html():
     assert resultado == "<p>Linha 1</p><p>Linha &amp; &lt;2&gt;</p>"
 
 
+def test_texto_para_storage_converte_titulos_markdown():
+    resultado = confluence_service._texto_para_storage("# Titulo\n## Secao\n### Subsecao")
+
+    assert resultado == "<h1>Titulo</h1><h2>Secao</h2><h3>Subsecao</h3>"
+
+
+def test_texto_para_storage_agrupa_linhas_de_lista_consecutivas():
+    resultado = confluence_service._texto_para_storage("## Requisitos\n- item 1\n- item 2\nTexto solto")
+
+    assert resultado == (
+        "<h2>Requisitos</h2><ul><li>item 1</li><li>item 2</li></ul><p>Texto solto</p>"
+    )
+
+
 def test_create_page_posts_expected_body_and_returns_id(monkeypatch):
     monkeypatch.setenv("JIRA_BASE_URL", "https://example.atlassian.net")
     monkeypatch.setenv("JIRA_EMAIL", "user@example.com")
