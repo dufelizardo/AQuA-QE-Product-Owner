@@ -176,6 +176,7 @@ Success metrics defined in the PRD: reduction in refinement time, acceptance rat
 - **Indexing of `knowledge/domain/`** — folder structure ready (requirements, business rules, processes, screens, API, database, glossary), empty until a real client/project exists to populate it.
 - **Project/long-term memory** (`memory.md`) — distinct from the RAG over `knowledge/methodology/`, not yet implemented.
 - **Resilience to local Ollama infrastructure failures** — instability observed during long runs that swap models (generator ↔ reviewer); a conscious decision to re-run manually rather than add automatic retries, until there's evidence the added complexity pays off.
+- **`update_confluence_page` has no CLI flow** — the skill exists (parity with `create_confluence_page`), but no `run.py` command triggers it today; callable only directly.
 
 ## 12. How to run it
 

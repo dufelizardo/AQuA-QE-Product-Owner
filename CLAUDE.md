@@ -43,19 +43,19 @@ Entrada (.txt/Markdown/chat/Jira/Confluence)
   → CLI (run.py) → orchestrator/product_owner.py → workflow/* → skills/* → models/* → services/*
 ```
 
-- `src/aqua_qe_product_owner/models/` — `UserStory`, `Epic`, `AcceptanceCriteria`, `BusinessRule`, `Actor`, `Requirement`, enum `StoryStatus`.
-- `src/aqua_qe_product_owner/skills/` — 22 funções de responsabilidade única (ver `docs/agent/skills.md`).
-- `src/aqua_qe_product_owner/workflow/` — orquestra a sequência de skills por caso de uso (`generate_user_story`, `generate_epic`, `generate_acceptance`, `refine_story`).
+- `src/aqua_qe_product_owner/models/` — `UserStory`, `Epic` (com `UnresolvedItem`), `AcceptanceCriteria`, `BusinessRule`, `Actor`, `Requirement`, `PRDContext`, `PRDDraft`, `ChatMessage`, enum `StoryStatus`.
+- `src/aqua_qe_product_owner/skills/` — 38 funções de responsabilidade única (ver `docs/agent/skills.md`).
+- `src/aqua_qe_product_owner/workflow/` — orquestra a sequência de skills por caso de uso (`generate_prd`, `generate_user_story`, `generate_epic`, `generate_acceptance`, `refine_story`).
 - `src/aqua_qe_product_owner/orchestrator/product_owner.py` — ponto de entrada único, `handle_request(entrada, modo)`.
 - `src/aqua_qe_product_owner/services/` — integrações externas: `llm_service`/`embedding_service` (Ollama), `rag_service` (Qdrant embarcado), `jira_service`/`confluence_service` (REST API + httpx).
 
 ## Convenções críticas
 
 - **Nunca inventar** (GR-1, `docs/agent/guardrails.md`): ator, objetivo, regra de negócio ou critério de aceitação só existem se rastreáveis à fonte de entrada. Quando não identificáveis, `identify_actor`/`identify_goal` retornam string vazia (`""`), o que aciona `PENDING_CLARIFICATION` — nunca preencha esses campos com suposição.
-- **Sem aprovação automática** (RULE-005): nenhuma skill/workflow define `StoryStatus.ACCEPTED`. Esse status só é atribuído pelo CLI (`run.py`), após confirmação humana explícita no terminal.
+- **Sem aprovação automática** (RULE-005, cobre os 3 artefatos — Story/PRD/Epic): nenhuma skill/workflow define `StoryStatus.ACCEPTED`. Esse status só é atribuído pelo CLI (`run.py`), após confirmação humana explícita no terminal — sempre pedida, inclusive para User Story sem `--refinar`.
 - **Toda saída de LLM gerador/revisor é sempre em português**, por design, independentemente do idioma da fonte de entrada — instrução explícita e hardcoded no prompt de `generate_story.py`, `generate_epic_metadata.py` e `refine_story.py` ("Responda sempre em português, mesmo que o texto de origem contenha trechos em outro idioma"). Não é um comportamento adaptativo por idioma da entrada.
 - **Dois LLMs sempre diferentes**: `OLLAMA_MODEL` (padrão `mistral`) gera; `OLLAMA_REVIEW_MODEL` (padrão `phi4`) revisa. É deliberado — mitiga *self-preference bias* de um modelo aprovar a própria saída.
-- **Escritas externas nunca são automáticas**: `update_jira_issue`, `create_jira_epic`, `create_jira_story` só são chamadas pelo CLI após aceitação humana explícita.
+- **Escritas externas nunca são automáticas**: `update_jira_issue`, `create_jira_epic`, `update_jira_epic`, `create_jira_story`, `create_confluence_page`, `update_confluence_page` só são chamadas pelo CLI após aceitação humana explícita (`update_confluence_page` ainda não está conectada a nenhum fluxo do CLI, só chamável diretamente como skill).
 - **Testes sempre mockam** Ollama/Jira/Confluence — nenhum teste em `tests/` faz chamada real de rede. Ao adicionar um teste para uma skill/service novo, siga esse padrão.
 - **Camada `Feature`** (entre Epic e User Story) foi avaliada e deliberadamente adiada — existe só como template em `knowledge/templates/feature.md`, sem model/skill/workflow. Não implementar especulativamente; ver seção 4 e 11 do `WHITEPAPER.md` para o raciocínio completo.
 - **`knowledge/domain/`** está vazio de propósito (aguardando um cliente/projeto real) — não confundir com pasta incompleta.

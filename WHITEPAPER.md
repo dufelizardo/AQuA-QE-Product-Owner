@@ -176,6 +176,7 @@ Métricas de sucesso definidas no PRD: redução do tempo de refinamento, taxa d
 - **Indexação de `knowledge/domain/`** — estrutura de pastas pronta (requisitos, regras de negócio, processos, telas, API, banco, glossário), vazia até haver um cliente/projeto real para popular.
 - **Memória de projeto/longo prazo** (`memory.md`) — distinta do RAG sobre `knowledge/methodology/`, ainda não implementada.
 - **Resiliência a falhas de infraestrutura do Ollama local** — instabilidade observada em execuções longas com troca de modelo (gerador ↔ revisor); decisão consciente de reexecutar manualmente em vez de adicionar retry automático, até haver evidência de que o custo de complexidade compensa.
+- **`update_confluence_page` sem fluxo de CLI** — a skill existe (paridade com `create_confluence_page`), mas nenhum comando do `run.py` a aciona hoje; chamável só diretamente.
 
 ## 12. Como executar
 
