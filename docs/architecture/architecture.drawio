@@ -61,10 +61,10 @@
         <mxCell id="bandSkills" value="Skills" style="rounded=0;whiteSpace=wrap;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontSize=13;fontStyle=1;container=1;collapsible=0;" vertex="1" parent="1">
           <mxGeometry x="40" y="450" width="920" height="130" as="geometry" />
         </mxCell>
-        <mxCell id="sk1" value="Sem LLM&#10;validate_story, validate_epic,&#10;validate_prd, format_prd_markdown,&#10;diff_story_versions, validate_traceability" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=9;" vertex="1" parent="bandSkills">
+        <mxCell id="sk1" value="Sem LLM&#10;validate_story, validate_epic,&#10;validate_prd, format_prd_markdown,&#10;diff_story_versions, diff_epic_versions,&#10;validate_traceability" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=9;" vertex="1" parent="bandSkills">
           <mxGeometry x="8" y="30" width="176" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="sk2" value="LLM gerador (mistral)&#10;generate_prd, extract_requirements,&#10;extract_prd_context, identify_actor/goal/&#10;business_rules, generate_story,&#10;generate_clarifying_questions (+ prd),&#10;refine_story (+ prd), generate_epic_metadata" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=9;" vertex="1" parent="bandSkills">
+        <mxCell id="sk2" value="LLM gerador (mistral)&#10;generate_prd, extract_requirements,&#10;extract_prd_context, identify_actor/goal/&#10;business_rules, generate_story,&#10;generate_clarifying_questions (+ prd/epic),&#10;refine_story (+ prd/epic), generate_epic_metadata" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=9;" vertex="1" parent="bandSkills">
           <mxGeometry x="190" y="30" width="176" height="90" as="geometry" />
         </mxCell>
         <mxCell id="sk3" value="LLM revisor independente (phi4)&#10;review_story, review_epic, review_prd" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="bandSkills">
@@ -73,7 +73,7 @@
         <mxCell id="sk4" value="Embedding / RAG (bge-m3)&#10;retrieve_chunks" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=10;" vertex="1" parent="bandSkills">
           <mxGeometry x="554" y="30" width="176" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="sk5" value="I/O externo&#10;read_text_file, read_jira_issue,&#10;read_confluence_page, export_markdown,&#10;update_jira_issue, create_jira_epic,&#10;create_jira_story, create_confluence_page,&#10;update_confluence_page,&#10;parse_chat_transcript, format_chat_transcript" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=8;" vertex="1" parent="bandSkills">
+        <mxCell id="sk5" value="I/O externo&#10;read_text_file, read_jira_issue,&#10;read_confluence_page, export_markdown,&#10;update_jira_issue, create_jira_epic,&#10;update_jira_epic, create_jira_story,&#10;create_confluence_page,&#10;update_confluence_page,&#10;parse_chat_transcript, format_chat_transcript" style="rounded=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#666666;fontSize=8;" vertex="1" parent="bandSkills">
           <mxGeometry x="736" y="30" width="176" height="90" as="geometry" />
         </mxCell>
 
@@ -265,11 +265,14 @@
         <mxCell id="e_n5" value="validate_epic (checklist Python puro)" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="380" y="550" width="340" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="e_d0" value="Continuar e gerar as User Stories&#10;d{estes N Epicos / este Epico}?" style="rhombus;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="e_d0" value="Recepcao (por Epico, individualmente):&#10;gerar stories / refinar / nao continuar?" style="rhombus;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="380" y="630" width="340" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="e_bstop" value="Execucao interrompida:&#10;nenhuma User Story foi gerada" style="rounded=1;whiteSpace=wrap;fillColor=#f8cecc;strokeColor=#b85450;dashed=1;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="e_bstop" value="Epico descartado:&#10;nenhuma User Story gerada para ele" style="rounded=1;whiteSpace=wrap;fillColor=#f8cecc;strokeColor=#b85450;dashed=1;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="800" y="650" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e_refine" value="Refinar: generate_epic_clarifying_questions -&gt;&#10;resposta humana -&gt; refine_epic_metadata -&gt;&#10;validate_epic/review_epic&#10;(repete ate aprovar ou desistir)" style="shape=process;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10.5;" vertex="1" parent="1">
+          <mxGeometry x="800" y="740" width="300" height="90" as="geometry" />
         </mxCell>
         <mxCell id="e_note1" value="Por Epico, para cada requisito do seu grupo:" style="text;align=center;fontStyle=2;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="380" y="760" width="340" height="30" as="geometry" />
@@ -295,6 +298,9 @@
         <mxCell id="e_n11" value="review_epic (LLM revisor - phi4,&#10;agora com as stories existentes)" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="380" y="1270" width="340" height="60" as="geometry" />
         </mxCell>
+        <mxCell id="e_diffnote" value="diff_epic_versions:&#10;changelog do Epico&#10;(se refinado na recepcao)" style="rounded=1;whiteSpace=wrap;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;fontSize=10.5;" vertex="1" parent="1">
+          <mxGeometry x="800" y="1270" width="300" height="60" as="geometry" />
+        </mxCell>
         <mxCell id="e_n12" value="Refinamento por story&#10;(ver Diagrama 4, por story reprovada)" style="shape=process;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="380" y="1360" width="340" height="60" as="geometry" />
         </mxCell>
@@ -310,7 +316,7 @@
         <mxCell id="e_d3" value="Usuario pediu&#10;--criar-jira?" style="rhombus;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="380" y="1660" width="340" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="e_n14" value="create_jira_epic -&gt; cria ticket Epico" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+        <mxCell id="e_n14" value="create_jira_epic (novo) ou, se 1 unico Epico&#10;veio de --jira, update_jira_epic (mesmo ticket)" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="380" y="1790" width="340" height="50" as="geometry" />
         </mxCell>
         <mxCell id="e_n15" value="create_jira_story (para cada story)&#10;-&gt; cria tickets filhos" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
@@ -327,8 +333,10 @@
         <mxCell id="ee3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="e_n3c" target="e_n4"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="ee4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="e_n4" target="e_n5"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="ee5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="e_n5" target="e_d0"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="ee6" value="Nao" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;" edge="1" parent="1" source="e_d0" target="e_bstop"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="ee7" value="Sim" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;" edge="1" parent="1" source="e_d0" target="e_note1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee6" value="Nao continuar" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;" edge="1" parent="1" source="e_d0" target="e_bstop"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee7" value="Gerar stories agora" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;" edge="1" parent="1" source="e_d0" target="e_note1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee_refine1" value="Refinar" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;" edge="1" parent="1" source="e_d0" target="e_refine"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ee_refine2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;" edge="1" parent="1" source="e_refine" target="e_d0"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="ee8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="e_note1" target="e_n6"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="ee9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="e_n6" target="e_d1"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="ee10" value="Nao" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=11;" edge="1" parent="1" source="e_d1" target="e_n7"><mxGeometry relative="1" as="geometry" /></mxCell>

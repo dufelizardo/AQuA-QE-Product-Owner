@@ -16,12 +16,16 @@ from aqua_qe_product_owner.orchestrator.product_owner import handle_request  # n
 from aqua_qe_product_owner.skills.create_confluence_page import create_confluence_page  # noqa: E402
 from aqua_qe_product_owner.skills.create_jira_epic import create_jira_epic  # noqa: E402
 from aqua_qe_product_owner.skills.create_jira_story import create_jira_story  # noqa: E402
+from aqua_qe_product_owner.skills.diff_epic_versions import diff_epic_versions  # noqa: E402
 from aqua_qe_product_owner.skills.diff_story_versions import diff_story_versions  # noqa: E402
 from aqua_qe_product_owner.skills.export_markdown import export_markdown  # noqa: E402
 from aqua_qe_product_owner.skills.format_chat_transcript import format_chat_transcript  # noqa: E402
 from aqua_qe_product_owner.skills.format_prd_markdown import format_prd_markdown  # noqa: E402
 from aqua_qe_product_owner.skills.generate_clarifying_questions import (  # noqa: E402
     generate_clarifying_questions,
+)
+from aqua_qe_product_owner.skills.generate_epic_clarifying_questions import (  # noqa: E402
+    generate_epic_clarifying_questions,
 )
 from aqua_qe_product_owner.skills.generate_prd_clarifying_questions import (  # noqa: E402
     generate_prd_clarifying_questions,
@@ -30,11 +34,14 @@ from aqua_qe_product_owner.skills.parse_chat_transcript import parse_chat_transc
 from aqua_qe_product_owner.skills.read_confluence_page import read_confluence_page  # noqa: E402
 from aqua_qe_product_owner.skills.read_jira_issue import read_jira_issue  # noqa: E402
 from aqua_qe_product_owner.skills.read_text_file import read_text_file  # noqa: E402
+from aqua_qe_product_owner.skills.update_jira_epic import update_jira_epic  # noqa: E402
 from aqua_qe_product_owner.skills.update_jira_issue import update_jira_issue  # noqa: E402
 from aqua_qe_product_owner.skills.validate_traceability import validate_traceability  # noqa: E402
 from aqua_qe_product_owner.workflow.generate_epic import (  # noqa: E402
+    finalize_epic,
     generate_epics_shape,
     generate_epics_stories,
+    refine_epic_shape,
 )
 from aqua_qe_product_owner.workflow.generate_prd import (  # noqa: E402
     generate_prd_draft,
@@ -206,8 +213,7 @@ def _imprimir_epic_shape(epic: Epic, indice: int | None = None, total: int | Non
     if indice is not None and total is not None:
         cabecalho = f"Épico {indice} de {total} — {cabecalho}"
     print(f"\n--- {cabecalho} ---")
-    aprovado = epic.status == StoryStatus.DRAFT_VALIDATED
-    print(f"checklist automático (validate_epic): {'aprovado' if aprovado else 'reprovado'}")
+    print(f"status: {epic.status.value}")
     print(f"título: {epic.title}")
     print(f"objetivo: {epic.objective}")
     print(f"escopo: {epic.scope}")
@@ -249,7 +255,14 @@ def _imprimir_epic_shape(epic: Epic, indice: int | None = None, total: int | Non
             print(f"  dependências: {contexto.dependencies}")
 
 
-def _processar_epic_aceito(epic: Epic, saida: str | None, refinar: bool, criar_jira: bool) -> None:
+def _processar_epic_aceito(
+    epic: Epic,
+    saida: str | None,
+    refinar: bool,
+    criar_jira: bool,
+    epic_original: Epic | None = None,
+    jira_epic_key: str | None = None,
+) -> None:
     """Roda story-by-story a mesma sequência de sempre (imprimir, traceability, refinamento, export, Jira) para um Épico já com as Stories geradas."""
     _imprimir_epic(epic)
     _imprimir_traceability(epic)
@@ -277,28 +290,127 @@ def _processar_epic_aceito(epic: Epic, saida: str | None, refinar: bool, criar_j
             export_markdown(story, str(pasta_epic / f"{story.id}.md"))
         print(f"exportado para: {pasta_epic}/")
 
+    if epic_original is not None:
+        diff = diff_epic_versions(epic_original, epic)
+        print("\n--- changelog do Épico (antes vs. depois do refinamento) ---")
+        print("critérios novos:", diff["criterios_novos"] or "nenhum")
+        print("critérios descontinuados:", diff["criterios_descontinuados"] or "nenhum")
+        if diff["objetivo_antes"] != diff["objetivo_depois"]:
+            print(f"objetivo alterado: '{diff['objetivo_antes']}' -> '{diff['objetivo_depois']}'")
+        if diff["escopo_antes"] != diff["escopo_depois"]:
+            print(f"escopo alterado: '{diff['escopo_antes']}' -> '{diff['escopo_depois']}'")
+        if diff["valor_antes"] != diff["valor_depois"]:
+            print(f"valor alterado: '{diff['valor_antes']}' -> '{diff['valor_depois']}'")
+        if pasta_epic:
+            pasta_epic.mkdir(parents=True, exist_ok=True)
+            caminho_changelog = pasta_epic / f"{epic.id}.changelog.md"
+            with open(caminho_changelog, "w", encoding="utf-8") as arquivo:
+                arquivo.write(f"# Changelog — {epic.id}\n\n")
+                arquivo.write(f"## Critérios novos\n{_lista_md_criterios(diff['criterios_novos'])}\n\n")
+                arquivo.write(
+                    f"## Critérios descontinuados\n{_lista_md_criterios(diff['criterios_descontinuados'])}\n\n"
+                )
+                arquivo.write(f"## Objetivo\nAntes: {diff['objetivo_antes']}\nDepois: {diff['objetivo_depois']}\n\n")
+                arquivo.write(f"## Escopo\nAntes: {diff['escopo_antes']}\nDepois: {diff['escopo_depois']}\n\n")
+                arquivo.write(f"## Valor\nAntes: {diff['valor_antes']}\nDepois: {diff['valor_depois']}\n")
+            print(f"changelog do Épico exportado para: {caminho_changelog}")
+
+    if jira_epic_key and _perguntar_sim_nao(f"\nPersistir esta versão do Épico no Jira ({jira_epic_key})?"):
+        update_jira_epic(jira_epic_key, epic)
+        print(f"ticket {jira_epic_key} atualizado no Jira.")
+
     if criar_jira:
         _criar_epico_no_jira(epic)
 
 
-def _rodar_lote(texto: str, saida: str | None, refinar: bool, criar_jira: bool) -> None:
+def _menu_epic(indice: int, total: int) -> str:
+    print(f"\nO que fazer com o Épico {indice} de {total}?")
+    print("  1) Gerar as User Stories agora")
+    print("  2) Refinar o Épico (título/objetivo/escopo/valor)")
+    print("  3) Não continuar com este Épico")
+    while True:
+        escolha = input("Escolha (1/2/3): ").strip()
+        if escolha in ("1", "2", "3"):
+            return escolha
+        print("Opção inválida.")
+
+
+def _ciclo_de_refinamento_epic(epic: Epic) -> Epic:
+    """Gera perguntas, pede respostas ao usuário, refina e reavalia até aprovar ou o usuário desistir.
+
+    Diferente do PRD/Story, o Épico chega aqui só com o checklist automático
+    (validate_epic) aplicado — review_epic (e epic.review_notes) só roda
+    dentro de finalize_epic, chamado aqui sob demanda, na entrada deste
+    ciclo, para não pagar esse custo de LLM para todo Épico impresso na
+    recepção — só para aquele que o usuário escolheu de fato refinar.
+    """
+    epic = finalize_epic(epic)
+    print("\n--- revisão do Épico ---")
+    _imprimir_epic_shape(epic)
+
+    while epic.status != StoryStatus.DRAFT_VALIDATED and epic.review_notes:
+        perguntas = generate_epic_clarifying_questions(epic)
+        if not perguntas:
+            break
+
+        print("\nO revisor apontou problemas no Épico. Responda para ajudar a refinar:")
+        respostas = []
+        for pergunta in perguntas:
+            resposta = input(f"  {pergunta}\n  > ")
+            respostas.append({"pergunta": pergunta, "resposta": resposta})
+
+        epic = refine_epic_shape(epic, respostas)
+        print("\n--- Épico refinado ---")
+        _imprimir_epic_shape(epic)
+
+        if epic.status != StoryStatus.DRAFT_VALIDATED and not _perguntar_sim_nao(
+            "\nTentar refinar de novo?"
+        ):
+            break
+    return epic
+
+
+def _rodar_lote(
+    texto: str,
+    saida: str | None,
+    refinar: bool,
+    criar_jira: bool,
+    jira_epic_key: str | None = None,
+) -> None:
     epics = generate_epics_shape(texto)
     total = len(epics)
+
+    # write-back só quando há mapeamento inequívoco 1:1 com o ticket de
+    # origem — evita sobrescrever o mesmo ticket com o conteúdo de Épicos
+    # diferentes quando o PRD se divide em N grupos (identify_epic_groups).
+    permitir_write_back = jira_epic_key is not None and total == 1
+
+    selecionados: list[tuple[Epic, Epic]] = []
     for i, epic in enumerate(epics, start=1):
         _imprimir_epic_shape(epic, indice=i, total=total)
+        original = copy.deepcopy(epic)
 
-    pergunta = (
-        "\nContinuar e gerar as User Stories deste Épico?"
-        if total == 1
-        else f"\nContinuar e gerar as User Stories destes {total} Épicos?"
-    )
-    if not _perguntar_sim_nao(pergunta):
+        while True:
+            escolha = _menu_epic(i, total)
+            if escolha == "2":
+                epic = _ciclo_de_refinamento_epic(epic)
+                continue
+            if escolha == "3":
+                print(f"Épico {i}: descartado a pedido do usuário.")
+                break
+            selecionados.append((original, epic))
+            break
+
+    if not selecionados:
         print("Execução interrompida: nenhuma User Story foi gerada.")
         return
 
-    epics = generate_epics_stories(epics)
-    for epic in epics:
-        _processar_epic_aceito(epic, saida, refinar, criar_jira)
+    epics_prontos = generate_epics_stories([atual for _, atual in selecionados])
+    for (original, _), epic in zip(selecionados, epics_prontos):
+        chave = jira_epic_key if permitir_write_back else None
+        _processar_epic_aceito(
+            epic, saida, refinar, criar_jira, epic_original=original, jira_epic_key=chave
+        )
 
 
 def _imprimir_prd(draft: PRDDraft) -> None:
@@ -425,7 +537,7 @@ def main() -> None:
         ):
             _rodar_lote(prd_aceito, args.saida, args.refinar, args.criar_jira)
     else:
-        _rodar_lote(texto, args.saida, args.refinar, args.criar_jira)
+        _rodar_lote(texto, args.saida, args.refinar, args.criar_jira, jira_epic_key=args.jira)
 
 
 if __name__ == "__main__":

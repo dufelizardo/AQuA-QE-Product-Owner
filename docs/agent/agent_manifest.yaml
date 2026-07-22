@@ -48,10 +48,14 @@ skills:
   - generate_epic_metadata
   - validate_epic
   - review_epic
+  - generate_epic_clarifying_questions
+  - refine_epic_metadata
+  - diff_epic_versions
   - validate_traceability
   - export_markdown
   - update_jira_issue
   - create_jira_epic
+  - update_jira_epic
   - create_jira_story
 
 memory:

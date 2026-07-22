@@ -36,9 +36,9 @@
 
 ## RULE-005
 
-- **Descrição**: nenhuma User Story é marcada como "aprovada" pelo agente — apenas como "rascunho validado".
-- **Gatilho**: `validate_story` retorna aprovação no checklist automático.
-- **Ação esperada**: rotular o estado da história como rascunho validado (ver `output_schema.md`) e aguardar aprovação humana.
+- **Descrição**: nenhum artefato — User Story, PRD ou Épico — é marcado como "aprovado" pelo agente — apenas como "rascunho validado", independentemente de qual desses três `finalize_*` (`finalize_story`, `finalize_prd`, `finalize_epic`) o gerou.
+- **Gatilho**: `validate_story`/`validate_prd`/`validate_epic` retorna aprovação no checklist automático (e, quando aplicável, o revisor independente também aprova).
+- **Ação esperada**: rotular o estado do artefato como rascunho validado (ver `output_schema.md`) e aguardar aprovação humana explícita no CLI antes de qualquer exportação, criação ou escrita de volta na fonte (Jira/Confluence).
 - **Severidade**: bloqueante.
 - **Origem**: guardrail transversal "Sem aprovação automática" (`guardrails.md`).
 

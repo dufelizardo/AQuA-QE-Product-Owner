@@ -1,4 +1,4 @@
-from aqua_qe_product_owner.models import PRDContext, Requirement, StoryStatus, UserStory
+from aqua_qe_product_owner.models import Epic, PRDContext, Requirement, StoryStatus, UserStory
 from aqua_qe_product_owner.workflow import generate_epic as workflow_module
 
 _METADADOS_PADRAO = {
@@ -297,3 +297,44 @@ def test_generate_epics_stories_delega_para_generate_epic_stories_por_epico(monk
 
     assert chamados == ["EPIC-001", "EPIC-002"]
     assert all(e.status == StoryStatus.DRAFT_VALIDATED for e in resultado)
+
+
+def test_refine_epic_shape_refina_e_finaliza(monkeypatch):
+    def fake_refine_epic_metadata(epic, respostas):
+        epic.objective = "objetivo refinado"
+        return epic
+
+    monkeypatch.setattr(workflow_module, "refine_epic_metadata", fake_refine_epic_metadata)
+    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: True)
+    monkeypatch.setattr(
+        workflow_module, "review_epic", lambda epic: {"aprovado": True, "problemas": []}
+    )
+
+    epic = Epic(id="EPIC-001", title="t", objective="o", scope="s", value="v")
+    resultado = workflow_module.refine_epic_shape(
+        epic, [{"pergunta": "qual objetivo?", "resposta": "objetivo refinado"}]
+    )
+
+    assert resultado.objective == "objetivo refinado"
+    assert resultado.status == StoryStatus.DRAFT_VALIDATED
+
+
+def test_refine_epic_shape_permanece_pending_clarification_quando_review_ainda_reprova(monkeypatch):
+    def fake_refine_epic_metadata(epic, respostas):
+        return epic
+
+    monkeypatch.setattr(workflow_module, "refine_epic_metadata", fake_refine_epic_metadata)
+    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: True)
+    monkeypatch.setattr(
+        workflow_module,
+        "review_epic",
+        lambda epic: {"aprovado": False, "problemas": ["ainda vago"]},
+    )
+
+    epic = Epic(id="EPIC-001", title="t", objective="o", scope="s", value="v")
+    resultado = workflow_module.refine_epic_shape(
+        epic, [{"pergunta": "qual objetivo?", "resposta": "resposta"}]
+    )
+
+    assert resultado.status == StoryStatus.PENDING_CLARIFICATION
+    assert resultado.review_notes == ["ainda vago"]

@@ -61,21 +61,23 @@ Entrada (.txt/Markdown/chat/Jira/Confluence)
 Em modo lote, o mesmo padrão se repete em nível de Épico, mas em **duas fases**, não uma só — decisão de arquitetura que evita gastar o processamento caro (identificação de ator/objetivo/regras + geração + validação + revisão de cada User Story) antes de o Épico em si estar definido:
 
 ```
-Entrada completa (.txt/Markdown/Confluence)
+Entrada completa (.txt/Markdown/Confluence/Jira)
    → extract_requirements
    → extract_prd_context (visão, requisitos não funcionais, riscos, critérios de sucesso, restrições, dependências)
    → identify_epic_groups (agrupa os requisitos por coerência temática — 1 grupo se o PRD for coeso, N se cobrir frentes distintas)
    → por grupo: generate_epic_metadata (a partir do texto + requisitos do grupo, SEM nenhuma story ainda)
    → validate_epic
-   → [checkpoint humano] "Continuar e gerar as User Stories d{estes N Épicos / este Épico}?"
-   → por Épico: generate_epic_stories: para cada requisito → generate_story → validate_story → review_story
+   → por Épico: recepção (menu) — gerar as User Stories agora / refinar o Épico / não continuar com este Épico
+        → [refinar] generate_epic_clarifying_questions → resposta humana → refine_epic_metadata → validate_epic/review_epic (repete até aprovar ou o usuário desistir)
+   → por Épico selecionado: generate_epic_stories: para cada requisito → generate_story → validate_story → review_story
    → validate_traceability (stories duplicadas, sem valor, requisitos órfãos)
    → review_epic (agora com as stories existentes, avalia coerência real com o Épico)
    → refinamento humano-no-loop por story reprovada
+   → diff_epic_versions (changelog, se o Épico foi refinado) +, se a origem era 1 único ticket Jira, oferece persistir de volta nele (update_jira_epic)
    → aceite humano final
 ```
 
-`generate_epic_metadata` depende apenas do texto de origem e dos requisitos extraídos — nunca das stories, que ainda não existem nesse ponto. Isso permite ao humano rejeitar ou pedir ajuste no Épico (título/objetivo/escopo/valor) **antes** de qualquer User Story ser gerada, evitando o desperdício de gerar um lote inteiro de stories sob um Épico com o escopo errado. Só depois que as stories existem é que `review_epic` consegue avaliar coerência real entre o objetivo do Épico e o que as stories entregam — por isso a revisão do Épico acontece em duas etapas: `validate_epic` (checklist automático, roda logo após a definição do Épico) e `review_epic` (LLM revisor, roda só depois das stories geradas).
+`generate_epic_metadata` depende apenas do texto de origem e dos requisitos extraídos — nunca das stories, que ainda não existem nesse ponto. Isso permite ao humano rejeitar, refinar ou pedir ajuste no Épico (título/objetivo/escopo/valor) **antes** de qualquer User Story ser gerada, evitando o desperdício de gerar um lote inteiro de stories sob um Épico com o escopo errado. A recepção é decidida **por Épico, individualmente** (não uma pergunta única para o lote inteiro) — cada Épico de `identify_epic_groups` tem seu próprio menu. Ao escolher "refinar", `review_epic` roda pela primeira vez (sob demanda, só para aquele Épico — não para todos os impressos na recepção, para não pagar esse custo de LLM sem necessidade), julgando clareza/coerência de título/objetivo/escopo/valor (ainda sem o eixo "coerência com as stories", que só existe depois). Só depois que as stories existem é que `review_epic` roda de novo com esse eixo completo — por isso a revisão do Épico acontece potencialmente em até três momentos: `validate_epic` (checklist automático, sempre), `review_epic` sob demanda na recepção (só se o usuário refinar) e `review_epic` de novo após as stories (sempre, dentro de `finalize_epic`). Write-back no Jira (`update_jira_epic`) só é oferecido quando o lote inteiro se resolveu em **um único** Épico — evita sobrescrever o mesmo ticket com o conteúdo de Épicos diferentes quando o PRD se divide em N grupos.
 
 `identify_epic_groups` fecha a lacuna PRD→Épico(s): antes, um PRD com frentes temáticas distintas (ex.: "Agendamento" + "Notificações" + "Pagamento") sempre virava um único Épico artificialmente amplo, misturando tudo. Agora o agrupamento decide quantos Épicos fazem sentido — podendo ser um só, quando o PRD for coeso (comportamento padrão, sem mudança visível). Se a resposta do LLM não cobrir todos os requisitos exatamente uma vez, a skill cai no fallback seguro de um único grupo, nunca perdendo rastreabilidade nem inventando uma divisão inconsistente (GR-1). A relação é sempre unidirecional — um PRD gera um ou mais Épicos, nunca o contrário.
 
@@ -84,25 +86,26 @@ Entrada completa (.txt/Markdown/Confluence)
 Camadas do código (`src/aqua_qe_product_owner/`):
 
 - **`models/`** — estruturas de dados: `UserStory`, `Epic` (com `UnresolvedItem`), `AcceptanceCriteria`, `BusinessRule`, `Actor`, `Requirement`, `PRDContext`, `PRDDraft`, e o enum `StoryStatus` (`draft_validated` / `pending_clarification` / `accepted`).
-- **`skills/`** — 34 funções, cada uma com um único efeito colateral e uma única responsabilidade (ver seção 5).
+- **`skills/`** — 38 funções, cada uma com um único efeito colateral e uma única responsabilidade (ver seção 5).
 - **`workflow/`** — orquestração da sequência de skills por caso de uso: `generate_prd.py` (`generate_prd_draft` → gera o PRD a partir de uma ideia; `refine_prd_draft` → refina com respostas humanas), `generate_user_story.py` (`finalize_story`), `generate_epic.py` (`generate_epic_shape` → define o Épico; `generate_epic_stories` → divide em User Stories e finaliza; `generate_epic` → wrapper de conveniência que encadeia as duas, sem checkpoint humano), `generate_acceptance.py`, `refine_story.py`.
 - **`orchestrator/product_owner.py`** — ponto de entrada único (`handle_request(entrada, modo)`), decide entre modo `"unitario"` e `"lote"`.
 - **`services/`** — integrações externas, introduzidas incrementalmente, uma por consumidor real: `llm_service` (Ollama), `embedding_service` (Ollama), `rag_service` (Qdrant embarcado), `jira_service` e `confluence_service` (REST API + httpx).
 
 Deliberadamente **não existe** uma camada de `Feature` entre Épico e User Story no código (só como template em `knowledge/templates/feature.md`). A avaliação registrada no projeto concluiu que essa camada tem valor real, mas custo desproporcional para o volume de PRDs testados até agora — fica para quando um PRD grande o suficiente justificar o agrupamento, em vez de ser construída especulativamente.
 
-## 5. As 34 skills
+## 5. As 38 skills
 
 Skills sem LLM (Python puro, determinísticas):
 
 - `validate_story`, `validate_epic`, `validate_prd` — checklist INVEST/DoR.
 - `format_prd_markdown` — formata o PRD em Markdown (exportação local e corpo da página do Confluence).
-- `diff_story_versions` — changelog entre versões (regras/critérios novos vs. descontinuados).
+- `diff_story_versions`/`diff_epic_versions` — changelog entre versões (regras/critérios novos vs. descontinuados; para Épico, também objetivo/escopo/valor antes-depois).
 - `validate_traceability` — duplicidade, ausência de valor de negócio, requisitos órfãos.
+- `parse_chat_transcript`/`format_chat_transcript` — reconhecem e normalizam transcrições de chat multi-remetente na entrada `--texto`, sem alterar texto corrido sem remetente identificável.
 
 Skills com LLM gerador (`OLLAMA_MODEL`, padrão `mistral`):
 
-- `generate_prd`, `generate_prd_clarifying_questions`, `refine_prd`, `extract_requirements`, `extract_prd_context`, `identify_epic_groups`, `identify_actor`, `identify_goal`, `identify_business_rules`, `generate_story`, `generate_clarifying_questions`, `refine_story`, `generate_epic_metadata`.
+- `generate_prd`, `generate_prd_clarifying_questions`, `refine_prd`, `extract_requirements`, `extract_prd_context`, `identify_epic_groups`, `identify_actor`, `identify_goal`, `identify_business_rules`, `generate_story`, `generate_clarifying_questions`, `refine_story`, `generate_epic_metadata`, `generate_epic_clarifying_questions`, `refine_epic_metadata`.
 
 Skills com LLM revisor independente (`OLLAMA_REVIEW_MODEL`, padrão `phi4` — deliberadamente um modelo diferente do gerador, para mitigar *self-preference bias*):
 
@@ -114,7 +117,7 @@ Skills de embedding/RAG (Ollama `bge-m3` + Qdrant embarcado, sem servidor extern
 
 Skills de I/O externo:
 
-- `read_text_file` (disco), `read_jira_issue`/`read_confluence_page` (leitura, Jira/Confluence Cloud REST API), `export_markdown` (disco), `update_jira_issue`/`create_jira_epic`/`create_jira_story`/`create_confluence_page` (escrita, Jira/Confluence Cloud REST API — **só executadas após aceitação humana explícita no CLI, nunca automaticamente**).
+- `read_text_file` (disco), `read_jira_issue`/`read_confluence_page` (leitura, Jira/Confluence Cloud REST API), `export_markdown` (disco), `update_jira_issue`/`create_jira_epic`/`update_jira_epic`/`create_jira_story`/`create_confluence_page`/`update_confluence_page` (escrita, Jira/Confluence Cloud REST API — **só executadas após aceitação humana explícita no CLI, nunca automaticamente**; `update_confluence_page` ainda não está conectada a nenhum fluxo do CLI, só chamável diretamente como skill).
 
 Detalhamento completo de entrada/saída/erros de cada skill em `docs/agent/skills.md`.
 
@@ -139,13 +142,13 @@ Importante: esse ciclo não é só um portão de aprovação. A resposta humana 
 
 - **PRD** (`--modo prd`) — o passo "Ideia → PRD" que faltava: `generate_prd` gera um PRD completo (contexto/problema, objetivo, público-alvo, escopo, fora de escopo, requisitos funcionais/não funcionais, critérios de sucesso, riscos e premissas — conforme `docs/standards/prd_standard.md`) a partir de uma ideia informal, passa pelo mesmo padrão `validate_prd` → `review_prd` → `generate_prd_clarifying_questions`/`refine_prd` (ciclo de refinamento humano-no-loop completo, seção 6) → aceite humano explícito. Uma vez aceito, `format_prd_markdown` produz o texto final, que pode ser exportado (`--saida`), publicado no Confluence (`--publicar-confluence`) e/ou virar a entrada do modo lote (o CLI pergunta se deve continuar e gerar o Épico a partir dele). Entrada via `--arquivo` ou `--texto`.
 - **Unitário** (`--modo unitario`) — uma única User Story por execução, com possibilidade de interação próxima a cada etapa. Entrada via `--arquivo`, `--texto` ou `--jira`.
-- **Lote/Épico(s)** (`--modo lote`) — em duas fases: primeiro `extract_prd_context` + `identify_epic_groups` (agrupa os requisitos extraídos por coerência temática — um PRD coeso vira um único Épico; um PRD com frentes distintas pode virar vários) + `generate_epic_metadata` por grupo definem título/objetivo/escopo/valor/critérios de cada Épico candidato a partir do texto de origem — **sem gerar nenhuma User Story ainda** — e `validate_epic` confere o checklist automático de cada um; o CLI então pergunta ao usuário se deve continuar (uma pergunta combinada, cobrindo todos os Épicos identificados). Só após confirmação, cada Épico é dividido em User Stories (uma por requisito do seu grupo), cada uma passando pelo pipeline completo do modo unitário; itens ambíguos viram `unresolved_items` sem travar o restante do lote; `validate_traceability` e `review_epic` (agora com as stories existentes) rodam antes do refinamento por story, um Épico de cada vez. Entrada via `--arquivo` ou `--confluence`.
-- **`--criar-jira`** (modo lote) — após aceitação humana explícita **de cada Épico** (pergunta individual, um Épico de cada vez), cria o ticket de Épico e cada User Story como ticket filho no Jira Cloud (vínculo `parent` simples, assume projeto *team-managed*).
+- **Lote/Épico(s)** (`--modo lote`) — em duas fases: primeiro `extract_prd_context` + `identify_epic_groups` (agrupa os requisitos extraídos por coerência temática — um PRD coeso vira um único Épico; um PRD com frentes distintas pode virar vários) + `generate_epic_metadata` por grupo definem título/objetivo/escopo/valor/critérios de cada Épico candidato a partir do texto de origem — **sem gerar nenhuma User Story ainda** — e `validate_epic` confere o checklist automático de cada um; o CLI então apresenta, **por Épico, individualmente**, um menu de recepção (gerar as User Stories agora / refinar o Épico / não continuar com este Épico) — escolher refinar entra no ciclo `generate_epic_clarifying_questions` → resposta humana → `refine_epic_metadata` → `validate_epic`/`review_epic`, repetido até aprovar ou o usuário desistir. Só os Épicos confirmados (opção 1, com ou sem refinamento prévio) são divididos em User Stories (uma por requisito do seu grupo), cada uma passando pelo pipeline completo do modo unitário; itens ambíguos viram `unresolved_items` sem travar o restante do lote; `validate_traceability`, `review_epic` (agora com as stories existentes) e `diff_epic_versions` (changelog do Épico, se refinado) rodam antes do refinamento por story, um Épico de cada vez. Entrada via `--arquivo`, `--jira` ou `--confluence`.
+- **`--criar-jira`** (modo lote) — após aceitação humana explícita **de cada Épico** (pergunta individual, um Épico de cada vez), cria o ticket de Épico e cada User Story como ticket filho no Jira Cloud (vínculo `parent` simples, assume projeto *team-managed*). Se o Épico veio de `--jira` e o lote resultou em um único Épico, também é oferecido persistir a versão refinada de volta no mesmo ticket (`update_jira_epic`), em vez de só criar tickets novos.
 - **`--publicar-confluence`** (modo prd) — após aceitação humana explícita do PRD, pergunta o título e publica a página no Confluence Cloud (`create_confluence_page`), retornando a URL criada.
 
 ## 8. Integrações reais
 
-- **Jira Cloud** (REST API v3) — leitura (`read_jira_issue`, convertendo Atlassian Document Format para texto puro), escrita (`update_jira_issue`, convertendo de volta para ADF) e criação (`create_jira_epic`/`create_jira_story`). Autenticação via Basic Auth (e-mail + API token gerado em `id.atlassian.com/manage-profile/security/api-tokens`).
+- **Jira Cloud** (REST API v3) — leitura (`read_jira_issue`, convertendo Atlassian Document Format para texto puro), escrita (`update_jira_issue`/`update_jira_epic`, convertendo de volta para ADF) e criação (`create_jira_epic`/`create_jira_story`). Autenticação via Basic Auth (e-mail + API token gerado em `id.atlassian.com/manage-profile/security/api-tokens`).
 - **Confluence Cloud** (REST API v1) — leitura de página (`read_confluence_page`), convertendo o storage format (XHTML) para texto puro via `html.parser.HTMLParser` da stdlib (sem dependência nova); **criação de página** (`create_confluence_page`/`create_page`), convertendo o Markdown do PRD de volta para o storage format (`#`/`##`/`###` viram `h1`/`h2`/`h3`, linhas `- item` consecutivas viram lista, o resto vira parágrafo, tudo HTML-escapado) — requer `CONFLUENCE_SPACE_KEY` além das credenciais do Jira, reaproveitadas (mesma conta Atlassian); e **atualização de página existente** (`update_confluence_page`/`update_page`, mesmo id/título, versão incrementada) — paridade com `update_jira_issue`, mas ainda não conectada a nenhum fluxo do CLI (chamável só diretamente como skill).
 
 Todas as operações de **escrita** exigem aceitação humana explícita antes de disparar — não há nenhum caminho no código em que o agente escreve em um sistema externo sem confirmação do usuário.
@@ -159,7 +162,7 @@ Todas as operações de **escrita** exigem aceitação humana explícita antes d
 
 ## 10. Qualidade e cobertura de testes
 
-119 testes automatizados cobrem todos os módulos implementados (91% de cobertura de linha), todos com chamadas a Ollama/Jira/Confluence mockadas — rápidos, determinísticos, sem dependência de infraestrutura externa para rodar em CI. A avaliação do agente em produção combina três camadas que nunca se substituem (`docs/agent/evaluation.md`):
+133 testes automatizados cobrem todos os módulos implementados (91% de cobertura de linha), todos com chamadas a Ollama/Jira/Confluence mockadas — rápidos, determinísticos, sem dependência de infraestrutura externa para rodar em CI. A avaliação do agente em produção combina três camadas que nunca se substituem (`docs/agent/evaluation.md`):
 
 1. Checklist automático (`validate_story`/`validate_epic`) — sem LLM.
 2. LLM-como-juiz (`review_story`/`review_epic`) — modelo diferente do gerador.

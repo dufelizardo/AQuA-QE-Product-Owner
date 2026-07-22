@@ -2,7 +2,7 @@
 
 > Documentação das skills implementadas em `../../src/aqua_qe_product_owner/skills/`, no formato definido em `../standards/skill_standard.md`. Ordem conforme `agent_manifest.yaml`. Tipos de entrada/saída referem-se às estruturas de `../../src/aqua_qe_product_owner/models/`.
 >
-> `extract_requirements`, `extract_prd_context`, `identify_epic_groups`, `identify_actor`, `identify_goal`, `identify_business_rules`, `generate_story`, `generate_clarifying_questions`, `refine_story`, `generate_epic_metadata`, `generate_prd`, `generate_prd_clarifying_questions` e `refine_prd` usam um LLM local via Ollama (`../../src/aqua_qe_product_owner/services/llm_service.py`, modelo configurável por `OLLAMA_MODEL`, padrão `mistral`). `validate_story`, `validate_epic`, `validate_prd`, `format_prd_markdown` e `diff_story_versions`/`validate_traceability` são Python puro, sem LLM (ver `evaluation.md`). `review_story`, `review_epic` e `review_prd` usam um segundo LLM, diferente do gerador (`OLLAMA_REVIEW_MODEL`, padrão `phi4`), como revisor independente (LLM-como-juiz). `retrieve_chunks` usa embedding local (`services/embedding_service.py`, modelo `bge-m3`) e um Qdrant embutido/local (`services/rag_service.py`, sem servidor externo). `read_jira_issue`, `update_jira_issue`, `create_jira_epic` e `create_jira_story` usam a API REST do Jira Cloud (`services/jira_service.py`) — as três últimas só são chamadas após aceitação humana explícita no CLI (`run.py`), nunca automaticamente. `read_confluence_page` e `create_confluence_page` usam a API REST do Confluence Cloud (`services/confluence_service.py`), reaproveitando as mesmas credenciais do Jira (mesma conta Atlassian) — `create_confluence_page` também só é chamada após aceitação humana explícita.
+> `extract_requirements`, `extract_prd_context`, `identify_epic_groups`, `identify_actor`, `identify_goal`, `identify_business_rules`, `generate_story`, `generate_clarifying_questions`, `refine_story`, `generate_epic_metadata`, `generate_epic_clarifying_questions`, `refine_epic_metadata`, `generate_prd`, `generate_prd_clarifying_questions` e `refine_prd` usam um LLM local via Ollama (`../../src/aqua_qe_product_owner/services/llm_service.py`, modelo configurável por `OLLAMA_MODEL`, padrão `mistral`). `validate_story`, `validate_epic`, `validate_prd`, `format_prd_markdown` e `diff_story_versions`/`diff_epic_versions`/`validate_traceability` são Python puro, sem LLM (ver `evaluation.md`). `review_story`, `review_epic` e `review_prd` usam um segundo LLM, diferente do gerador (`OLLAMA_REVIEW_MODEL`, padrão `phi4`), como revisor independente (LLM-como-juiz). `retrieve_chunks` usa embedding local (`services/embedding_service.py`, modelo `bge-m3`) e um Qdrant embutido/local (`services/rag_service.py`, sem servidor externo). `read_jira_issue`, `update_jira_issue`, `create_jira_epic`, `update_jira_epic` e `create_jira_story` usam a API REST do Jira Cloud (`services/jira_service.py`) — todas exceto `read_jira_issue` só são chamadas após aceitação humana explícita no CLI (`run.py`), nunca automaticamente. `read_confluence_page`, `create_confluence_page` e `update_confluence_page` usam a API REST do Confluence Cloud (`services/confluence_service.py`), reaproveitando as mesmas credenciais do Jira (mesma conta Atlassian) — as duas últimas só são chamadas após aceitação humana explícita (`update_confluence_page` ainda não está conectada a nenhum fluxo do CLI — ver sua entrada abaixo).
 
 ## read_text_file
 
@@ -193,6 +193,33 @@
 - **Erros esperados**: resposta do LLM não é JSON válido (`ValueError`).
 - **Dependências**: consome a saída de `generate_epic_metadata`, após `validate_epic` aprovar o checklist automático (ver `workflow/generate_epic.py:finalize_epic`).
 
+## generate_epic_clarifying_questions
+
+- **Descrição**: gera perguntas de esclarecimento a partir dos apontamentos da revisão do Épico — equivalente de `generate_prd_clarifying_questions` em nível de Épico. Retorna lista vazia se `epic.review_notes` estiver vazio.
+- **Entrada**: `epic: Epic`.
+- **Saída**: `list[str]`.
+- **Efeitos colaterais**: chamada ao LLM local (`llm_service`).
+- **Erros esperados**: resposta do LLM não é JSON válido (`ValueError`).
+- **Dependências**: consome `epic.review_notes`, produzido por `review_epic` (via `workflow/generate_epic.py:finalize_epic`).
+
+## refine_epic_metadata
+
+- **Descrição**: reescreve título, objetivo, escopo, valor e critérios de aceitação do Épico usando as respostas do usuário às perguntas de esclarecimento — equivalente de `refine_prd` em nível de Épico. Normaliza campos que o LLM às vezes devolve como lista em vez de string (mesmo fix de `refine_prd`/`generate_prd`).
+- **Entrada**: `epic: Epic`, `respostas: list[dict]` (cada item com `pergunta`/`resposta`).
+- **Saída**: `Epic` — o mesmo objeto, com os campos reescritos.
+- **Efeitos colaterais**: chamada ao LLM local (`llm_service`).
+- **Erros esperados**: resposta do LLM não é JSON válido (`ValueError`).
+- **Dependências**: chamada pelo ciclo de refinamento do CLI (`run.py::_ciclo_de_refinamento_epic`), reaplicando `validate_epic`/`review_epic` em seguida via `workflow/generate_epic.py:refine_epic_shape`.
+
+## diff_epic_versions
+
+- **Descrição**: compara duas versões de um Épico (antes/depois do refinamento) — critérios de aceitação novos/descontinuados (diff de conjunto, como `diff_story_versions`), e se objetivo/escopo/valor mudaram (comparação direta de texto, já que são campos escalares, não listas).
+- **Entrada**: `antes: Epic`, `depois: Epic`.
+- **Saída**: `dict` com `criterios_novos`, `criterios_descontinuados`, `objetivo_antes`/`objetivo_depois`, `escopo_antes`/`escopo_depois`, `valor_antes`/`valor_depois`.
+- **Efeitos colaterais**: nenhum — Python puro, sem LLM.
+- **Erros esperados**: nenhum.
+- **Dependências**: usada pelo CLI (`run.py`) para gerar o changelog do Épico após um ciclo de refinamento.
+
 ## validate_traceability
 
 - **Descrição**: verifica consistência entre os artefatos de um Epic — stories com objetivo duplicado, stories sem `benefit` (valor de negócio) associado, e requisitos extraídos que não viraram nenhuma story nem `unresolved_item` (órfãos).
@@ -228,6 +255,15 @@
 - **Efeitos colaterais**: chamada HTTP `POST` à API REST do Jira Cloud; requer `JIRA_PROJECT_KEY` e `JIRA_EPIC_ISSUE_TYPE_ID` no `.env` (específicos do projeto/instância — ver `create_jira_story`).
 - **Erros esperados**: credenciais/config ausentes (`KeyError`); erro HTTP via `httpx` (ex.: tipo de issue inválido para o projeto).
 - **Dependências**: chamada apenas após aceitação explícita do usuário no CLI (`run.py --criar-jira`), nunca automaticamente.
+
+## update_jira_epic
+
+- **Descrição**: persiste a versão final (aceita pelo usuário) de um Épico de volta na descrição do ticket Jira de origem — equivalente de `update_jira_issue` em nível de Épico. Reaproveita `epic_para_texto` (definida em `create_jira_epic`) para formatar o corpo.
+- **Entrada**: `issue_key: str`, `epic: Epic`.
+- **Saída**: `None`.
+- **Efeitos colaterais**: chamada HTTP `PUT` à API REST do Jira Cloud (`services/jira_service.py`, convertendo texto simples para ADF).
+- **Erros esperados**: credenciais ausentes (`KeyError`); ticket inexistente ou sem permissão de escrita (erro HTTP via `httpx`).
+- **Dependências**: chamada apenas após aceitação explícita do usuário no CLI (`run.py --modo lote --jira <chave>`, quando o lote gera exatamente 1 Épico — evita sobrescrever o mesmo ticket com o conteúdo de Épicos diferentes quando o PRD se divide em N grupos), nunca automaticamente.
 
 ## create_jira_story
 

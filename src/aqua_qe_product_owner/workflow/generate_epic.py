@@ -7,6 +7,7 @@ from ..skills.identify_actor import identify_actor
 from ..skills.identify_business_rules import identify_business_rules
 from ..skills.identify_epic_groups import identify_epic_groups
 from ..skills.identify_goal import identify_goal
+from ..skills.refine_epic_metadata import refine_epic_metadata
 from ..skills.review_epic import review_epic
 from ..skills.validate_epic import validate_epic
 from .generate_user_story import finalize_story
@@ -138,6 +139,17 @@ def generate_epic_stories(epic: Epic) -> Epic:
 def generate_epics_stories(epics: list[Epic]) -> list[Epic]:
     """Aplica generate_epic_stories a cada Epic já definido (um por grupo de generate_epics_shape)."""
     return [generate_epic_stories(epic) for epic in epics]
+
+
+def refine_epic_shape(epic: Epic, respostas: list[dict]) -> Epic:
+    """Reescreve o Epic (título/objetivo/escopo/valor/critérios) com base nas respostas do usuário e reaplica validate_epic/review_epic.
+
+    Reaproveita finalize_epic tal como está — inclusive na fase de shape,
+    antes de epic.stories existir: review_epic ainda assim avalia clareza/
+    coerência de título/objetivo/escopo/valor, só sem o eixo de coerência
+    com as stories agrupadas (que ainda não existem neste ponto).
+    """
+    return finalize_epic(refine_epic_metadata(epic, respostas))
 
 
 def generate_epic(texto: str) -> Epic:
