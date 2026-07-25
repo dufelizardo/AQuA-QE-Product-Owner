@@ -1,26 +1,6 @@
 # Output Schema
 
-> Estrutura de dados retornada por `generate_story` e exportada por `export_markdown`, alinhada a `../../knowledge/templates/user_story.md`. Implementada como dataclasses reais em `../../src/aqua_qe_product_owner/models/` (`UserStory`, `AcceptanceCriteria`, `BusinessRule`, `Epic`, `UnresolvedItem`, `PRDContext`, `PRDDraft`) — o JSON abaixo é a representação conceitual; `business_rules` na implementação é `list[BusinessRule]` (objetos com `id`/`description`/`source_reference`), não strings soltas.
-
-## Schema de um PRD gerado do zero (`--modo prd`)
-
-```
-{
-  "context_problem": "<string — contexto e problema de negócio>",
-  "objective": "<string — objetivo do produto>",
-  "target_audience": "<string, opcional>",
-  "scope": "<string>",
-  "out_of_scope": "<string, opcional>",
-  "functional_requirements": ["<string>"],
-  "non_functional_requirements": ["<string>"],
-  "success_criteria": ["<string>"],
-  "risks_assumptions": ["<string>"],
-  "status": "draft_validated | pending_clarification | accepted",
-  "review_notes": ["<apontamento do revisor (review_prd), se houver>"]
-}
-```
-
-Gerado por `generate_prd` a partir de uma ideia informal (não de uma fonte já existente), conforme `../standards/prd_standard.md`. Passa pelo mesmo ciclo `validate_prd` + `review_prd` (`workflow/generate_prd.py:finalize_prd`) que a User Story passa em `validate_story`/`review_story`, incluindo o mesmo ciclo de refinamento humano-no-loop (`generate_prd_clarifying_questions` + `refine_prd`). Uma vez aceito (`run.py --modo prd`), `format_prd_markdown` formata o PRD em Markdown — esse texto pode alimentar `extract_requirements`/`extract_prd_context`/`generate_epic_shape` normalmente (como qualquer outra fonte de entrada) e/ou ser publicado como página no Confluence via `create_confluence_page` (`--publicar-confluence`).
+> Estrutura de dados retornada por `generate_story` e exportada por `export_markdown`, alinhada a `../../knowledge/templates/user_story.md`. Implementada como dataclasses reais em `../../src/aqua_qe_product_owner/models/` (`UserStory`, `AcceptanceCriteria`, `BusinessRule`, `Epic`, `UnresolvedItem`, `PRDContext`) — o JSON abaixo é a representação conceitual; `business_rules` na implementação é `list[BusinessRule]` (objetos com `id`/`description`/`source_reference`), não strings soltas.
 
 ## Schema de uma User Story (modo unitário)
 
@@ -102,9 +82,9 @@ Ao aceitar cada Épico (CLI, `run.py --criar-jira`, pergunta feita uma vez por �
 
 ## Valores válidos de `status`
 
-- **`draft_validated`** — passou no checklist automático (`validation_checklist.md`) e na revisão por LLM (`review_story`/`review_prd`/`review_epic`, conforme o artefato); ainda não tem aceitação humana (ver RULE-005 em `rules.md`, que cobre os três artefatos).
-- **`pending_clarification`** — o agente interrompeu a geração por ambiguidade/incompletude na fonte (RULE-004), ou o revisor reprovou o artefato; use o par `generate_clarifying_questions`/`refine_story` (User Story), `generate_prd_clarifying_questions`/`refine_prd` (PRD) ou `generate_epic_clarifying_questions`/`refine_epic_metadata` (Épico) — ver `skills.md` — para endereçar os apontamentos.
-- **`accepted`** — setado **apenas** pelo CLI (`run.py`), nunca pela lógica automática do agente, após confirmação explícita do usuário — sempre pedida, com ou sem o ciclo de refinamento. Dispara `diff_story_versions`/`diff_epic_versions` (comparação com a versão original) e, opcionalmente, `update_jira_issue`/`update_jira_epic`/`update_confluence_page`.
+- **`draft_validated`** — passou no checklist automático (`validation_checklist.md`) e na revisão por LLM (`review_story`/`review_epic`, conforme o artefato); ainda não tem aceitação humana (ver RULE-005 em `rules.md`, que cobre os dois artefatos).
+- **`pending_clarification`** — o agente interrompeu a geração por ambiguidade/incompletude na fonte (RULE-004), ou o revisor reprovou o artefato; use o par `generate_clarifying_questions`/`refine_story` (User Story) ou `generate_epic_clarifying_questions`/`refine_epic_metadata` (Épico) — ver `skills.md` — para endereçar os apontamentos.
+- **`accepted`** — setado **apenas** pelo CLI (`run.py`), nunca pela lógica automática do agente, após confirmação explícita do usuário — sempre pedida, com ou sem o ciclo de refinamento. Dispara `diff_story_versions`/`diff_epic_versions` (comparação com a versão original) e, opcionalmente, `update_jira_issue`/`update_jira_epic`.
 
 ## Formato de exportação (`export_markdown`)
 

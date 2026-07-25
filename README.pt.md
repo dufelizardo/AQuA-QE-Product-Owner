@@ -8,6 +8,10 @@ Agente que gera User Stories, Épicos e Critérios de Aceitação a partir de PR
 PRD → System Design → Agent Design → AI Specs/Rules/Skills → Context Engineering → Memory/MCP → Agents → Outputs
 ```
 
+## Relação com o AQuA-QE Product Manager
+
+Este agente e o AQuA-QE Product Manager são **independentes** — repositórios separados, sem runtime compartilhado, sem chamada direta entre eles. O Product Manager é dono do passo **ideia → PRD** (descoberta, visão, estratégia, geração/refino do PRD, priorização); o Product Owner **só consome** um PRD já pronto (`--arquivo`/`--jira`/`--confluence`) para produzir Épicos e User Stories. O Product Owner nunca gera, refina ou publica um PRD — essa responsabilidade migrou inteiramente para o Product Manager assim que ele foi construído (este agente chegou a ter seu próprio `--modo prd`, removido ao identificar a sobreposição).
+
 ## Estrutura
 
 - **`docs/standards/`** — padrões da plataforma (como escrever um AI Spec, uma Rule, um PRD, etc.). Mudam pouco.
@@ -17,8 +21,8 @@ PRD → System Design → Agent Design → AI Specs/Rules/Skills → Context Eng
 - **`knowledge/templates/`** — estrutura pura, sem conhecimento (templates de User Story, Epic, Feature, Acceptance Criteria, Business Rule, Task).
 - **`knowledge/examples/`** — exemplos para few-shot (bons e maus exemplos, por categoria).
 - **`knowledge/glossary/`** e **`knowledge/regulations/`** — glossário geral e regulações aplicáveis à plataforma.
-- **`src/aqua_qe_product_owner/skills/`** — skills do agente em Python (gerar/validar/revisar/refinar um PRD a partir de uma ideia, ler arquivo de texto, parsear/formatar transcrição de chat, ler ticket Jira, recuperar chunks, extrair requisitos, extrair contexto do PRD, identificar ator/objetivo/regras, gerar/validar/revisar/refinar a story, gerar/validar/revisar/refinar o Épico, comparar versões de story/Épico, exportar em Markdown, atualizar/criar tickets no Jira e Épicos, criar/atualizar página no Confluence).
-- **`src/aqua_qe_product_owner/models/`** — estruturas de dados do agente (User Story, Epic, Acceptance Criteria, Business Rule, Actor, Requirement, PRDContext, PRDDraft).
+- **`src/aqua_qe_product_owner/skills/`** — skills do agente em Python (ler arquivo de texto, parsear/formatar transcrição de chat, ler ticket Jira/página Confluence, recuperar chunks, extrair requisitos, extrair contexto do PRD, identificar ator/objetivo/regras/dependências, gerar/validar/revisar/refinar a story, gerar/validar/revisar/refinar o Épico, gerar a Matriz de Rastreabilidade, comparar versões de story/Épico, exportar em Markdown, atualizar/criar tickets no Jira e Épicos).
+- **`src/aqua_qe_product_owner/models/`** — estruturas de dados do agente (User Story, Epic, Acceptance Criteria, Business Rule, Actor, Requirement, PRDContext).
 - **`src/aqua_qe_product_owner/workflow/`** — orquestração da sequência de skills por caso de uso (gerar User Story unitária, gerar Epic em lote, gerar/complementar critérios de aceitação).
 - **`src/aqua_qe_product_owner/orchestrator/`** — ponto de entrada único que decide qual workflow executar.
 - **`src/aqua_qe_product_owner/services/`** — integrações externas: `llm_service` (Ollama local, geração), `embedding_service` (Ollama local, `bge-m3`), `rag_service` (Qdrant embutido/local, sem servidor) e `jira_service` (API REST do Jira Cloud).
@@ -52,12 +56,6 @@ Este é um repositório independente (não faz parte de nenhum monorepo) — o `
 ## Uso
 
 ```bash
-# Gerar um PRD a partir de uma ideia informal, com o ciclo interativo de refinamento
-uv run python run.py --modo prd --texto "Clientes precisam conseguir contratar CDB pelo app" --refinar --saida prd.md
-
-# Gerar um PRD e publicá-lo como página nova no Confluence
-uv run python run.py --modo prd --arquivo ideia.txt --refinar --publicar-confluence
-
 # Uma User Story a partir de um arquivo .txt/.md
 uv run python run.py --modo unitario --arquivo requisito.txt --saida story.md
 
@@ -87,11 +85,9 @@ uv run python run.py --modo lote --arquivo prd.txt --saida saida_epic/ --prioriz
 
 No modo unitário, um prompt sempre pergunta se você aceita a história, com ou sem `--refinar` — a exportação (`--saida`) e o changelog só acontecem depois desse aceite explícito, nunca antes. `--refinar` ativa o ciclo interativo que roda *antes* desse prompt: se a história não sair aprovada, o agente gera perguntas de esclarecimento a partir dos apontamentos da revisão, você responde no terminal, e as respostas viram contexto real para reescrever a história (em vez do LLM adivinhar sozinho). Uma vez aceita (com ou sem refinamento), é gerado um changelog (regras/critérios novos vs. descontinuados, no terminal e em `<saida>.changelog.md`) e, se a entrada veio de `--jira`, é perguntado se deve persistir a versão final de volta no ticket.
 
-O modo lote (`--modo lote`) para logo após definir cada Épico (título, objetivo, escopo, valor, critérios de aceitação) e apresenta, por Épico, um menu de recepção — gerar as User Stories agora / refinar o Épico / não continuar com este Épico — antes de gerar qualquer User Story, para que um Épico com escopo errado não custe um lote inteiro de geração de stories. Refinar um Épico roda o mesmo ciclo de perguntas/refinamento de um PRD ou Story, aplicado a título/objetivo/escopo/valor.
+O modo lote (`--modo lote`) para logo após definir cada Épico (título, objetivo, escopo, valor, critérios de aceitação) e apresenta, por Épico, um menu de recepção — gerar as User Stories agora / refinar o Épico / não continuar com este Épico — antes de gerar qualquer User Story, para que um Épico com escopo errado não custe um lote inteiro de geração de stories. Refinar um Épico roda o mesmo ciclo de perguntas/refinamento de uma Story, aplicado a título/objetivo/escopo/valor.
 
-`--criar-jira` (só no modo lote), depois que o Épico e suas User Stories já foram gerados e de um prompt de aceitação explícito, cria o ticket do Épico no Jira (`JIRA_PROJECT_KEY`, `JIRA_EPIC_ISSUE_TYPE_ID`) e cada User Story como ticket filho (`JIRA_STORY_ISSUE_TYPE_ID`, vínculo `parent` — assume projeto *team-managed*), retornando as chaves criadas. Se o Épico veio de `--jira` e o lote resultou em um único Épico, também é oferecido persistir a versão refinada de volta nesse mesmo ticket, em vez de só criar um novo.
-
-`--modo prd` gera um PRD completo a partir de uma ideia informal (`--arquivo`/`--texto`), passa pela mesma validação equivalente a INVEST/DoR, revisão independente e ciclo interativo de refinamento de uma User Story, e — depois de aceito explicitamente — pode ser exportado (`--saida`), publicado como página nova no Confluence (`--publicar-confluence`, exige `CONFLUENCE_SPACE_KEY`) e/ou virar a entrada do modo lote (o CLI pergunta se deve continuar e gerar o Épico a partir dele). Ver `run.py --help` para todas as opções.
+`--criar-jira` (só no modo lote), depois que o Épico e suas User Stories já foram gerados e de um prompt de aceitação explícito, cria o ticket do Épico no Jira (`JIRA_PROJECT_KEY`, `JIRA_EPIC_ISSUE_TYPE_ID`) e cada User Story como ticket filho (`JIRA_STORY_ISSUE_TYPE_ID`, vínculo `parent` — assume projeto *team-managed*), retornando as chaves criadas. Se o Épico veio de `--jira` e o lote resultou em um único Épico, também é oferecido persistir a versão refinada de volta nesse mesmo ticket, em vez de só criar um novo. Ver `run.py --help` para todas as opções.
 
 `--priorizar` (modos unitário/lote, após o aceite) pergunta a prioridade de cada história — Alta/Média/Baixa — sempre decidida por você, nunca sugerida pelo agente: `dor.md`/`scrum_guide.md` atribuem a ordenação do backlog ao Product Owner. `estimate` fica permanentemente fora de escopo pelo motivo inverso — `dor.md` atribui a estimativa ao time de desenvolvimento (Planning Poker), não ao PO sozinho, então este agente não tenta fazer isso.
 
@@ -101,9 +97,8 @@ O modo lote (`--modo lote`) para logo após definir cada Épico (título, objeti
 
 `docs/agent/`, `docs/standards/` e `knowledge/` (exceto `domain/`, `regulations/` e `examples/`, que dependem de um cliente/projeto real) estão com conteúdo real preenchido.
 
-Em `src/`, todas as 40 skills e os quatro workflows estão implementados e funcionam de ponta a ponta com modelos locais via Ollama:
+Em `src/`, todas as 32 skills e os quatro workflows estão implementados e funcionam de ponta a ponta com modelos locais via Ollama:
 
-- **Modo PRD** (`workflow/generate_prd.py`, via `run.py --modo prd`) — o passo "Ideia → PRD": `generate_prd` (LLM `mistral`) escreve um PRD completo a partir de uma ideia informal (contexto/problema, objetivo, público-alvo, escopo, fora de escopo, requisitos funcionais/não funcionais, critérios de sucesso, riscos — conforme `docs/standards/prd_standard.md`), `validate_prd` (checklist Python puro) → `review_prd` (LLM revisor `phi4`) → o mesmo ciclo de refinamento interativo da User Story (`generate_prd_clarifying_questions` + `refine_prd`) → aceite humano explícito. Uma vez aceito, `format_prd_markdown` produz o texto final, que pode ser exportado, publicado no Confluence (`create_confluence_page`, via `--publicar-confluence`) e/ou virar entrada direta do modo lote.
 - **Modo unitário** (`workflow/generate_user_story.py`) — `read_text_file` → `extract_requirements` → `identify_actor`/`identify_goal`/`identify_business_rules` → `generate_story` (LLM `mistral`) → `validate_story` (checklist Python puro) → `review_story` (LLM revisor `phi4`, independente do gerador) → status final. Para entrada `chat` especificamente, `parse_chat_transcript`/`format_chat_transcript` (Python puro, sem LLM) normalizam uma transcrição com múltiplos remetentes (`"PO: ...\nDev: ..."`) em parágrafos `"Remetente: mensagem"` antes de qualquer uma dessas rodar; texto corrido sem remetente identificável passa inalterado.
 - **Modo lote** (`workflow/generate_epic.py`) — em duas fases: `generate_epics_shape` extrai os requisitos, extrai o contexto não funcional do PRD (`extract_prd_context` — visão, requisitos não funcionais, restrições, critérios de sucesso, riscos, dependências, guardados em `epic.prd_context`), agrupa os requisitos por coerência temática (`identify_epic_groups` — um PRD coeso vira um único grupo; um PRD com frentes distintas pode virar vários, com fallback seguro para um grupo só se o agrupamento do LLM for inconsistente) e define título, objetivo, escopo, valor e critérios de aceitação de alto nível de cada Épico candidato só a partir do texto de origem (nenhuma story gerada ainda), e `validate_epic` roda o checklist automático de cada um — é nesse ponto que `run.py --modo lote` apresenta, por Épico individualmente, um menu de recepção (gerar as stories agora / refinar o Épico / não continuar com este Épico), antes de pagar o custo de gerar qualquer story. Escolher refinar roda `generate_epic_clarifying_questions` → resposta humana → `refine_epic_metadata` → `validate_epic`/`review_epic`, repetido até aprovar ou o usuário desistir (`review_epic` só roda nesse ponto para o Épico que o usuário de fato escolhe refinar, não para todos os impressos). Só para os Épicos confirmados, `generate_epics_stories` aplica o pipeline de story unitária a cada requisito extraído, por Épico (itens ambíguos viram `unresolved_items` sem travar o restante do lote), e então roda `validate_traceability` (stories duplicadas, sem valor de negócio, requisitos órfãos), `review_epic` (LLM revisor `phi4`, agora conseguindo avaliar coerência com as stories que agrupa) e `diff_epic_versions` (changelog, se o Épico foi refinado) para cada Épico.
 - **Complemento de critérios** (`workflow/generate_acceptance.py`) — gera critérios de aceitação adicionais para uma User Story já existente e reaplica `validate_story`/`review_story`.
@@ -112,7 +107,7 @@ Em `src/`, todas as 40 skills e os quatro workflows estão implementados e funci
 - `orchestrator/product_owner.py` (`handle_request(entrada, modo)`) trata `"unitario"` e `"lote"`.
 - `retrieve_chunks` indexa e busca em `knowledge/methodology/` via embedding local (`bge-m3`) e Qdrant local; `read_jira_issue` busca um ticket do Jira Cloud via API REST; `read_confluence_page` busca uma página do Confluence Cloud (mesmas credenciais do Jira); `export_markdown` formata a saída final.
 
-Ainda faltam: uma camada de `Feature` entre Epic e User Story (hoje só existe como template em `knowledge/templates/feature.md`, sem skill/workflow — avaliado e adiado deliberadamente até haver um PRD grande o suficiente para precisar de agrupamento), indexação de `knowledge/domain/` (vazio, aguardando cliente real) e memória de projeto/longo prazo (`memory.md` — distinta do RAG sobre `knowledge/`, ainda não implementada). `tests/` cobre todos os módulos implementados (133 testes, mocks de LLM/HTTP — rápidos e determinísticos, não chamam Ollama nem Jira/Confluence de verdade).
+Ainda faltam: uma camada de `Feature` entre Epic e User Story (hoje só existe como template em `knowledge/templates/feature.md`, sem skill/workflow — avaliado e adiado deliberadamente até haver um PRD grande o suficiente para precisar de agrupamento), indexação de `knowledge/domain/` (vazio, aguardando cliente real) e memória de projeto/longo prazo (`memory.md` — distinta do RAG sobre `knowledge/`, ainda não implementada). `tests/` cobre todos os módulos implementados (116 testes, mocks de LLM/HTTP — rápidos e determinísticos, não chamam Ollama nem Jira/Confluence de verdade).
 
 Este projeto tem repositório git próprio, independente do monorepo raiz (conforme a convenção "todo projeto novo recebe repositório separado" — ver `CLAUDE.md` raiz): [github.com/dufelizardo/AQuA-QE-Product-Owner](https://github.com/dufelizardo/AQuA-QE-Product-Owner).
 

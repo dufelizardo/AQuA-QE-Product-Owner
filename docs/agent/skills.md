@@ -2,7 +2,7 @@
 
 > Documentação das skills implementadas em `../../src/aqua_qe_product_owner/skills/`, no formato definido em `../standards/skill_standard.md`. Ordem conforme `agent_manifest.yaml`. Tipos de entrada/saída referem-se às estruturas de `../../src/aqua_qe_product_owner/models/`.
 >
-> `extract_requirements`, `extract_prd_context`, `identify_epic_groups`, `identify_actor`, `identify_goal`, `identify_business_rules`, `identify_dependencies`, `generate_story`, `generate_clarifying_questions`, `refine_story`, `generate_epic_metadata`, `generate_epic_clarifying_questions`, `refine_epic_metadata`, `generate_prd`, `generate_prd_clarifying_questions` e `refine_prd` usam um LLM local via Ollama (`../../src/aqua_qe_product_owner/services/llm_service.py`, modelo configurável por `OLLAMA_MODEL`, padrão `mistral`). `validate_story`, `validate_epic`, `validate_prd`, `format_prd_markdown` e `diff_story_versions`/`diff_epic_versions`/`validate_traceability`/`generate_traceability_matrix` são Python puro, sem LLM (ver `evaluation.md`). `review_story`, `review_epic` e `review_prd` usam um segundo LLM, diferente do gerador (`OLLAMA_REVIEW_MODEL`, padrão `phi4`), como revisor independente (LLM-como-juiz). `retrieve_chunks` usa embedding local (`services/embedding_service.py`, modelo `bge-m3`) e um Qdrant embutido/local (`services/rag_service.py`, sem servidor externo). `read_jira_issue`, `update_jira_issue`, `create_jira_epic`, `update_jira_epic` e `create_jira_story` usam a API REST do Jira Cloud (`services/jira_service.py`) — todas exceto `read_jira_issue` só são chamadas após aceitação humana explícita no CLI (`run.py`), nunca automaticamente. `read_confluence_page`, `create_confluence_page` e `update_confluence_page` usam a API REST do Confluence Cloud (`services/confluence_service.py`), reaproveitando as mesmas credenciais do Jira (mesma conta Atlassian) — as duas últimas só são chamadas após aceitação humana explícita (`update_confluence_page` ainda não está conectada a nenhum fluxo do CLI — ver sua entrada abaixo).
+> `extract_requirements`, `extract_prd_context`, `identify_epic_groups`, `identify_actor`, `identify_goal`, `identify_business_rules`, `identify_dependencies`, `generate_story`, `generate_clarifying_questions`, `refine_story`, `generate_epic_metadata`, `generate_epic_clarifying_questions` e `refine_epic_metadata` usam um LLM local via Ollama (`../../src/aqua_qe_product_owner/services/llm_service.py`, modelo configurável por `OLLAMA_MODEL`, padrão `mistral`). `validate_story`, `validate_epic` e `diff_story_versions`/`diff_epic_versions`/`validate_traceability`/`generate_traceability_matrix` são Python puro, sem LLM (ver `evaluation.md`). `review_story` e `review_epic` usam um segundo LLM, diferente do gerador (`OLLAMA_REVIEW_MODEL`, padrão `phi4`), como revisor independente (LLM-como-juiz). `retrieve_chunks` usa embedding local (`services/embedding_service.py`, modelo `bge-m3`) e um Qdrant embutido/local (`services/rag_service.py`, sem servidor externo). `read_jira_issue`, `update_jira_issue`, `create_jira_epic`, `update_jira_epic` e `create_jira_story` usam a API REST do Jira Cloud (`services/jira_service.py`) — todas exceto `read_jira_issue` só são chamadas após aceitação humana explícita no CLI (`run.py`), nunca automaticamente. `read_confluence_page` usa a API REST do Confluence Cloud (`services/confluence_service.py`), reaproveitando as mesmas credenciais do Jira (mesma conta Atlassian) — leitura apenas; geração/edição/publicação de PRD (incluindo escrita no Confluence) passou a ser responsabilidade exclusiva do agente irmão AQuA-QE Product Manager.
 
 ## read_text_file
 
@@ -204,7 +204,7 @@
 
 ## generate_epic_clarifying_questions
 
-- **Descrição**: gera perguntas de esclarecimento a partir dos apontamentos da revisão do Épico — equivalente de `generate_prd_clarifying_questions` em nível de Épico. Retorna lista vazia se `epic.review_notes` estiver vazio.
+- **Descrição**: gera perguntas de esclarecimento a partir dos apontamentos da revisão do Épico — mesmo papel de `generate_clarifying_questions`, em nível de Épico. Retorna lista vazia se `epic.review_notes` estiver vazio.
 - **Entrada**: `epic: Epic`.
 - **Saída**: `list[str]`.
 - **Efeitos colaterais**: chamada ao LLM local (`llm_service`).
@@ -213,7 +213,7 @@
 
 ## refine_epic_metadata
 
-- **Descrição**: reescreve título, objetivo, escopo, valor e critérios de aceitação do Épico usando as respostas do usuário às perguntas de esclarecimento — equivalente de `refine_prd` em nível de Épico. Normaliza campos que o LLM às vezes devolve como lista em vez de string (mesmo fix de `refine_prd`/`generate_prd`).
+- **Descrição**: reescreve título, objetivo, escopo, valor e critérios de aceitação do Épico usando as respostas do usuário às perguntas de esclarecimento — mesmo papel de `refine_story`, em nível de Épico. Normaliza campos que o LLM às vezes devolve como lista em vez de string.
 - **Entrada**: `epic: Epic`, `respostas: list[dict]` (cada item com `pergunta`/`resposta`).
 - **Saída**: `Epic` — o mesmo objeto, com os campos reescritos.
 - **Efeitos colaterais**: chamada ao LLM local (`llm_service`).
@@ -292,74 +292,3 @@
 - **Erros esperados**: credenciais/config ausentes (`KeyError`); erro HTTP via `httpx`.
 - **Dependências**: chamada apenas após `create_jira_epic` retornar a chave do Épico pai; nunca automaticamente.
 
-## generate_prd
-
-- **Descrição**: gera um PRD completo (contexto/problema, objetivo, público-alvo, escopo, fora de escopo, requisitos funcionais e não funcionais, critérios de sucesso, riscos e premissas) a partir de uma ideia informal, conforme `../standards/prd_standard.md` — fecha o passo "Ideia → PRD" que antes não existia no agente (só se consumia um PRD já pronto).
-- **Entrada**: `ideia: str` — descrição informal/crua da ideia.
-- **Saída**: `PRDDraft` — sempre criado com `status = PENDING_CLARIFICATION`; o status final é decidido pelo workflow após `validate_prd`/`review_prd`.
-- **Efeitos colaterais**: chamada ao LLM local (`llm_service`).
-- **Erros esperados**: resposta do LLM não é JSON válido (`ValueError`).
-- **Dependências**: nenhuma outra skill; primeira etapa de `workflow/generate_prd.py::generate_prd_draft`.
-
-## validate_prd
-
-- **Descrição**: valida se o PRD tem contexto/problema, objetivo e escopo preenchidos, e ao menos um requisito funcional e um critério de sucesso.
-- **Entrada**: `draft: PRDDraft`.
-- **Saída**: `bool` — indica se o PRD passa no checklist automático (não decide aceitação humana).
-- **Efeitos colaterais**: nenhum — Python puro, sem LLM.
-- **Erros esperados**: nenhum.
-- **Dependências**: consome a saída de `generate_prd`/`refine_prd`.
-
-## review_prd
-
-- **Descrição**: revisa o PRD com um segundo LLM, diferente do gerador, avaliando clareza e coerência entre objetivo, escopo e requisitos — equivalente de `review_story`/`review_epic` em nível de PRD.
-- **Entrada**: `draft: PRDDraft`.
-- **Saída**: `dict` no formato `{"aprovado": bool, "problemas": list[str]}`.
-- **Efeitos colaterais**: chamada ao LLM local de revisão (`OLLAMA_REVIEW_MODEL`, padrão `phi4`).
-- **Erros esperados**: resposta do LLM não é JSON válido (`ValueError`).
-- **Dependências**: consome a saída de `generate_prd`/`refine_prd`, após `validate_prd` aprovar o checklist automático (ver `workflow/generate_prd.py::finalize_prd`).
-
-## generate_prd_clarifying_questions
-
-- **Descrição**: transforma os `review_notes` de um PRD em perguntas diretas e acionáveis para quem propôs a ideia responder — mesmo papel de `generate_clarifying_questions`, em nível de PRD.
-- **Entrada**: `draft: PRDDraft`.
-- **Saída**: `list[str]` — lista de perguntas; vazia se o PRD não tiver `review_notes`.
-- **Efeitos colaterais**: chamada ao LLM local (`llm_service`).
-- **Erros esperados**: resposta do LLM não é JSON válido (`ValueError`).
-- **Dependências**: consome `review_notes`, preenchido por `review_prd`.
-
-## refine_prd
-
-- **Descrição**: reescreve os campos do PRD usando as respostas do usuário às perguntas de esclarecimento — não o LLM adivinhando sozinho a correção.
-- **Entrada**: `draft: PRDDraft`, `respostas: list[dict]` (cada item: `{"pergunta": str, "resposta": str}`).
-- **Saída**: `PRDDraft` — mesmo PRD, campos atualizados; `status`/`review_notes` só são recalculados pelo workflow (`workflow/generate_prd.py::refine_prd_draft`), que reaplica `validate_prd`/`review_prd`.
-- **Efeitos colaterais**: chamada ao LLM local (`llm_service`).
-- **Erros esperados**: resposta do LLM não é JSON válido (`ValueError`).
-- **Dependências**: consome as perguntas de `generate_prd_clarifying_questions` e as respostas do usuário (coletadas no CLI, `run.py`).
-
-## format_prd_markdown
-
-- **Descrição**: formata o PRD em Markdown, seções conforme `../standards/prd_standard.md`. Usado tanto para exportação local (`--saida`) quanto como corpo da página do Confluence (`create_confluence_page`) — o texto resultante pode alimentar `extract_requirements`/`extract_prd_context`/`generate_epic_shape` normalmente, como qualquer outra fonte de entrada.
-- **Entrada**: `draft: PRDDraft`.
-- **Saída**: `str` — PRD formatado em Markdown.
-- **Efeitos colaterais**: nenhum — Python puro, sem LLM.
-- **Erros esperados**: nenhum.
-- **Dependências**: consome a saída de `generate_prd`/`refine_prd`, tipicamente após aceitação humana.
-
-## create_confluence_page
-
-- **Descrição**: publica o PRD aceito como uma nova página no Confluence Cloud, retornando a URL da página criada.
-- **Entrada**: `draft: PRDDraft`, `titulo: str`.
-- **Saída**: `str` — URL da página criada.
-- **Efeitos colaterais**: chamada HTTP `POST` à API REST do Confluence Cloud (`services/confluence_service.py::create_page`); requer `CONFLUENCE_SPACE_KEY` no `.env` (além das credenciais do Jira, reaproveitadas).
-- **Erros esperados**: credenciais/config ausentes (`KeyError`); erro HTTP via `httpx` (ex.: espaço inexistente ou sem permissão).
-- **Dependências**: chamada apenas após aceitação explícita do usuário no CLI (`run.py --modo prd --publicar-confluence`), nunca automaticamente.
-
-## update_confluence_page
-
-- **Descrição**: persiste a versão atual de um PRD aceito de volta numa página já existente do Confluence Cloud (mesmo id/título, corpo substituído), em vez de criar uma página nova. Paridade com `update_jira_issue` para o lado Confluence.
-- **Entrada**: `page_id: str`, `draft: PRDDraft`.
-- **Saída**: `None`.
-- **Efeitos colaterais**: `GET` (busca a versão atual da página) seguido de `PUT` (`services/confluence_service.py::update_page`) na API REST do Confluence Cloud, incrementando o número de versão da página.
-- **Erros esperados**: credenciais/config ausentes (`KeyError`); erro HTTP via `httpx` (ex.: página inexistente ou sem permissão de edição).
-- **Dependências**: ainda não está conectada a nenhum fluxo do CLI (`run.py`) — hoje só é chamável diretamente como skill; diferente de `update_jira_issue`, que já é acionado pelo ciclo de refinamento interativo.
