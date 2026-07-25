@@ -59,3 +59,22 @@ def test_refine_epic_metadata_com_campos_como_lista_normaliza_para_string(monkey
     assert epic.scope == "item A; item B"
     assert "[" not in epic.scope
     assert "[" not in epic.title
+
+
+def test_refine_epic_metadata_prompt_instrui_a_preservar_detalhe_de_campos_nao_perguntados(monkeypatch):
+    """Regressão (Issue #5): refine_epic_metadata reescreve o Épico inteiro a cada rodada — sem instrução
+    explícita, o LLM tende a simplificar/encurtar campos que não têm relação com as respostas daquela
+    rodada, mesmo sem ser perguntado (mesmo risco de erosão de detalhe já corrigido em refine_prd)."""
+    captured = {}
+
+    def fake_complete_json(prompt, system=""):
+        captured["prompt"] = prompt
+        captured["system"] = system
+        return {"criterios_aceitacao": []}
+
+    monkeypatch.setattr(module, "complete_json", fake_complete_json)
+
+    module.refine_epic_metadata(_epic(), [{"pergunta": "p", "resposta": "r"}])
+
+    assert "preserve" in captured["system"].lower() or "preserv" in captured["prompt"].lower()
+    assert "simplifi" in captured["prompt"].lower()

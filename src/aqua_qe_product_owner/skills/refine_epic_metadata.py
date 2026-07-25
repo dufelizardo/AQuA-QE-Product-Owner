@@ -14,8 +14,11 @@ _SYSTEM = (
     "ideia deu às perguntas de esclarecimento levantadas por um revisor. "
     "Baseie-se apenas no Épico atual e nas respostas fornecidas; nunca invente "
     "escopo, valor ou critério de aceitação que não tenha sido informado "
-    "nelas. Responda sempre em português, mesmo que o Épico atual contenha "
-    "trechos em outro idioma."
+    "nelas. Nunca remova ou resuma um detalhe que já existe em um campo "
+    "atual, a menos que uma resposta contradiga esse detalhe especificamente "
+    "— preserve o texto existente nos campos que as respostas não abordam. "
+    "Responda sempre em português, mesmo que o Épico atual contenha trechos "
+    "em outro idioma."
 )
 
 
@@ -37,7 +40,10 @@ def refine_epic_metadata(epic: Epic, respostas: list[dict]) -> Epic:
         + "\n".join(perguntas_respostas)
         + "\n\nReescreva o título, objetivo, escopo, valor e critérios de "
         "aceitação incorporando essas respostas, resolvendo as lacunas "
-        "apontadas.\n\n"
+        "apontadas. Campos (ou critérios) que não têm relação com nenhuma "
+        "das respostas acima devem manter o texto atual, com o mesmo nível "
+        "de detalhe — nunca simplifique um item para menos palavras do que "
+        "já tinha.\n\n"
         "Cada critério de aceitação tem quatro campos distintos e não "
         "vazios: 'cenario', 'dado', 'quando' e 'entao'. Nunca junte duas "
         "dessas partes em um único campo.\n\n"
