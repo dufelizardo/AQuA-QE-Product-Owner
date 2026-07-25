@@ -24,6 +24,9 @@ from aqua_qe_product_owner.skills.format_prd_markdown import format_prd_markdown
 from aqua_qe_product_owner.skills.generate_clarifying_questions import (  # noqa: E402
     generate_clarifying_questions,
 )
+from aqua_qe_product_owner.skills.generate_traceability_matrix import (  # noqa: E402
+    generate_traceability_matrix,
+)
 from aqua_qe_product_owner.skills.generate_epic_clarifying_questions import (  # noqa: E402
     generate_epic_clarifying_questions,
 )
@@ -75,6 +78,21 @@ def _imprimir_story(story: UserStory) -> None:
 def _perguntar_sim_nao(mensagem: str) -> bool:
     resposta = input(f"{mensagem} (s/n): ").strip().lower()
     return resposta in ("s", "sim", "y", "yes")
+
+
+_PRIORIDADES = {"1": "Alta", "2": "Média", "3": "Baixa"}
+
+
+def _perguntar_prioridade(story: UserStory) -> None:
+    """Pergunta a prioridade da história ao usuário — o PO decide, o agente nunca sugere (ver knowledge/methodology/dor.md e scrum_guide.md)."""
+    print(f"\nPrioridade de '{story.title or story.id}':")
+    print("  1) Alta   2) Média   3) Baixa")
+    while True:
+        escolha = input("Escolha (1/2/3): ").strip()
+        if escolha in _PRIORIDADES:
+            story.priority = _PRIORIDADES[escolha]
+            return
+        print("Opção inválida.")
 
 
 def _ciclo_de_refinamento(story: UserStory) -> UserStory:
@@ -145,7 +163,9 @@ def _processar_aceite(
         print(f"ticket {jira_key} atualizado no Jira.")
 
 
-def _rodar_unitario(texto: str, saida: str | None, jira_key: str | None, refinar: bool) -> None:
+def _rodar_unitario(
+    texto: str, saida: str | None, jira_key: str | None, refinar: bool, priorizar: bool = False
+) -> None:
     story = handle_request(texto, modo="unitario")
     _imprimir_story(story)
 
@@ -155,6 +175,9 @@ def _rodar_unitario(texto: str, saida: str | None, jira_key: str | None, refinar
 
     caminho_changelog = f"{saida}.changelog.md" if saida else None
     _processar_aceite(story, original, caminho_changelog, jira_key)
+
+    if story.status == StoryStatus.ACCEPTED and priorizar:
+        _perguntar_prioridade(story)
 
     if saida and story.status == StoryStatus.ACCEPTED:
         export_markdown(story, saida)
@@ -261,6 +284,8 @@ def _processar_epic_aceito(
     criar_jira: bool,
     epic_original: Epic | None = None,
     jira_epic_key: str | None = None,
+    priorizar: bool = False,
+    saida_rtm: bool = False,
 ) -> None:
     """Roda story-by-story a mesma sequência de sempre (imprimir, traceability, refinamento, export, Jira) para um Épico já com as Stories geradas."""
     _imprimir_epic(epic)
@@ -283,11 +308,21 @@ def _processar_epic_aceito(
             )
             _processar_aceite(story_refinada, original, caminho_changelog, None)
 
+    if priorizar and saida:
+        for story in epic.stories:
+            _perguntar_prioridade(story)
+
     if saida:
         pasta_epic.mkdir(parents=True, exist_ok=True)
         for story in epic.stories:
             export_markdown(story, str(pasta_epic / f"{story.id}.md"))
         print(f"exportado para: {pasta_epic}/")
+
+        if saida_rtm:
+            caminho_rtm = pasta_epic / "RTM.md"
+            with open(caminho_rtm, "w", encoding="utf-8") as arquivo:
+                arquivo.write(generate_traceability_matrix(epic))
+            print(f"matriz de rastreabilidade exportada para: {caminho_rtm}")
 
     if epic_original is not None:
         diff = diff_epic_versions(epic_original, epic)
@@ -375,6 +410,8 @@ def _rodar_lote(
     refinar: bool,
     criar_jira: bool,
     jira_epic_key: str | None = None,
+    priorizar: bool = False,
+    saida_rtm: bool = False,
 ) -> None:
     epics = generate_epics_shape(texto)
     total = len(epics)
@@ -408,7 +445,14 @@ def _rodar_lote(
     for (original, _), epic in zip(selecionados, epics_prontos):
         chave = jira_epic_key if permitir_write_back else None
         _processar_epic_aceito(
-            epic, saida, refinar, criar_jira, epic_original=original, jira_epic_key=chave
+            epic,
+            saida,
+            refinar,
+            criar_jira,
+            epic_original=original,
+            jira_epic_key=chave,
+            priorizar=priorizar,
+            saida_rtm=saida_rtm,
         )
 
 
@@ -525,11 +569,35 @@ def main() -> None:
             "no Confluence (CONFLUENCE_SPACE_KEY)."
         ),
     )
+    parser.add_argument(
+        "--priorizar",
+        action="store_true",
+        help=(
+            "Modos unitario/lote: após aceitar a(s) história(s), pergunta a "
+            "prioridade (Alta/Média/Baixa) de cada uma — sempre decidida pelo "
+            "usuário, o agente nunca sugere (ver knowledge/methodology/dor.md)."
+        ),
+    )
+    parser.add_argument(
+        "--saida-rtm",
+        action="store_true",
+        dest="saida_rtm",
+        help=(
+            "Modo lote: exporta a Matriz de Rastreabilidade do Épico "
+            "(RTM.md, dentro da pasta de --saida) — requisito -> story -> "
+            "critérios de aceitação -> status."
+        ),
+    )
     args = parser.parse_args()
+
+    if args.priorizar and args.modo not in ("unitario", "lote"):
+        parser.error("--priorizar só é válido com --modo unitario/lote.")
+    if args.saida_rtm and args.modo != "lote":
+        parser.error("--saida-rtm só é válido com --modo lote.")
 
     texto = _ler_entrada(args)
     if args.modo == "unitario":
-        _rodar_unitario(texto, args.saida, args.jira, args.refinar)
+        _rodar_unitario(texto, args.saida, args.jira, args.refinar, priorizar=args.priorizar)
     elif args.modo == "prd":
         prd_aceito = _rodar_prd(texto, args.saida, args.refinar, args.publicar_confluence)
         if prd_aceito and _perguntar_sim_nao(
@@ -537,7 +605,15 @@ def main() -> None:
         ):
             _rodar_lote(prd_aceito, args.saida, args.refinar, args.criar_jira)
     else:
-        _rodar_lote(texto, args.saida, args.refinar, args.criar_jira, jira_epic_key=args.jira)
+        _rodar_lote(
+            texto,
+            args.saida,
+            args.refinar,
+            args.criar_jira,
+            jira_epic_key=args.jira,
+            priorizar=args.priorizar,
+            saida_rtm=args.saida_rtm,
+        )
 
 
 if __name__ == "__main__":

@@ -78,6 +78,9 @@ uv run python run.py --modo lote --arquivo prd.txt --saida saida_epic/ --criar-j
 
 # Um Epic a partir de uma página do Confluence Cloud (PRD)
 uv run python run.py --modo lote --confluence "https://seu-site.atlassian.net/wiki/.../pages/163841/..." --criar-jira
+
+# Perguntar a prioridade (Alta/Média/Baixa) de cada história após o aceite, e exportar a Matriz de Rastreabilidade do Épico
+uv run python run.py --modo lote --arquivo prd.txt --saida saida_epic/ --priorizar --saida-rtm
 ```
 
 `--saida` é opcional em ambos os modos (sem ela, o resultado só é impresso no terminal). Para usar `--jira`, preencha `JIRA_BASE_URL`, `JIRA_EMAIL` e `JIRA_API_TOKEN` no `.env` (o token é gerado em `id.atlassian.com/manage-profile/security/api-tokens`).
@@ -90,11 +93,15 @@ O modo lote (`--modo lote`) para logo após definir cada Épico (título, objeti
 
 `--modo prd` gera um PRD completo a partir de uma ideia informal (`--arquivo`/`--texto`), passa pela mesma validação equivalente a INVEST/DoR, revisão independente e ciclo interativo de refinamento de uma User Story, e — depois de aceito explicitamente — pode ser exportado (`--saida`), publicado como página nova no Confluence (`--publicar-confluence`, exige `CONFLUENCE_SPACE_KEY`) e/ou virar a entrada do modo lote (o CLI pergunta se deve continuar e gerar o Épico a partir dele). Ver `run.py --help` para todas as opções.
 
+`--priorizar` (modos unitário/lote, após o aceite) pergunta a prioridade de cada história — Alta/Média/Baixa — sempre decidida por você, nunca sugerida pelo agente: `dor.md`/`scrum_guide.md` atribuem a ordenação do backlog ao Product Owner. `estimate` fica permanentemente fora de escopo pelo motivo inverso — `dor.md` atribui a estimativa ao time de desenvolvimento (Planning Poker), não ao PO sozinho, então este agente não tenta fazer isso.
+
+`--saida-rtm` (só no modo lote) exporta a Matriz de Rastreabilidade do Épico (`RTM.md`, dentro da pasta de `--saida`) — requisito → story → critérios de aceitação → status, além das mesmas checagens de inconsistência de `validate_traceability` (objetivos duplicados, sem valor de negócio, requisitos órfãos). Escopo limitado a PRD-requisito → Épico → Story → Critério de Aceitação — as camadas Task/Código/Testes/Release não existem neste agente.
+
 ## Status
 
 `docs/agent/`, `docs/standards/` e `knowledge/` (exceto `domain/`, `regulations/` e `examples/`, que dependem de um cliente/projeto real) estão com conteúdo real preenchido.
 
-Em `src/`, todas as 39 skills e os quatro workflows estão implementados e funcionam de ponta a ponta com modelos locais via Ollama:
+Em `src/`, todas as 40 skills e os quatro workflows estão implementados e funcionam de ponta a ponta com modelos locais via Ollama:
 
 - **Modo PRD** (`workflow/generate_prd.py`, via `run.py --modo prd`) — o passo "Ideia → PRD": `generate_prd` (LLM `mistral`) escreve um PRD completo a partir de uma ideia informal (contexto/problema, objetivo, público-alvo, escopo, fora de escopo, requisitos funcionais/não funcionais, critérios de sucesso, riscos — conforme `docs/standards/prd_standard.md`), `validate_prd` (checklist Python puro) → `review_prd` (LLM revisor `phi4`) → o mesmo ciclo de refinamento interativo da User Story (`generate_prd_clarifying_questions` + `refine_prd`) → aceite humano explícito. Uma vez aceito, `format_prd_markdown` produz o texto final, que pode ser exportado, publicado no Confluence (`create_confluence_page`, via `--publicar-confluence`) e/ou virar entrada direta do modo lote.
 - **Modo unitário** (`workflow/generate_user_story.py`) — `read_text_file` → `extract_requirements` → `identify_actor`/`identify_goal`/`identify_business_rules` → `generate_story` (LLM `mistral`) → `validate_story` (checklist Python puro) → `review_story` (LLM revisor `phi4`, independente do gerador) → status final. Para entrada `chat` especificamente, `parse_chat_transcript`/`format_chat_transcript` (Python puro, sem LLM) normalizam uma transcrição com múltiplos remetentes (`"PO: ...\nDev: ..."`) em parágrafos `"Remetente: mensagem"` antes de qualquer uma dessas rodar; texto corrido sem remetente identificável passa inalterado.

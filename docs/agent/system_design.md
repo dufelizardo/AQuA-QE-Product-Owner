@@ -38,6 +38,7 @@ Entrada (.txt/Markdown/chat/Jira)
 5. `validate_story` aplica o checklist automático (`validation_checklist.md`); se reprovar por informação faltante/ambígua, o agente interrompe e solicita esclarecimento em vez de prosseguir.
 6. Se aprovada no checklist automático, a história é exportada (`export_markdown`) em estado de **rascunho validado** — não aprovado.
 7. A aprovação final é um passo humano, fora da responsabilidade do agente.
+8. Opcionalmente, após o aceite (`--priorizar`), o usuário é perguntado a prioridade de cada história (Alta/Média/Baixa) — decisão sempre humana, nunca sugerida pelo agente (ver `dor.md`/`scrum_guide.md`, que atribuem ordenação do backlog ao PO e estimativa ao time). Em modo lote, opcionalmente (`--saida-rtm`) a Matriz de Rastreabilidade do Épico (`generate_traceability_matrix`) é exportada junto das User Stories.
 
 ## Modos de operação
 

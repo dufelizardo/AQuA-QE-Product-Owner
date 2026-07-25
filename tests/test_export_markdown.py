@@ -18,6 +18,7 @@ def test_export_markdown_writes_expected_sections(tmp_path):
         review_notes=["ponto de atenção"],
         source_reference="texto fonte",
         status=StoryStatus.DRAFT_VALIDATED,
+        priority="Alta",
     )
     caminho = tmp_path / "story.md"
 
@@ -26,6 +27,7 @@ def test_export_markdown_writes_expected_sections(tmp_path):
     conteudo = caminho.read_text(encoding="utf-8")
     assert "# Titulo" in conteudo
     assert "**Status**: draft_validated" in conteudo
+    assert "**Prioridade**: Alta" in conteudo
     assert "## Regras de Negócio" in conteudo
     assert "BR-001" in conteudo
     assert "## Critérios de Aceitação" in conteudo
@@ -51,6 +53,7 @@ def test_export_markdown_omits_empty_sections(tmp_path):
     export_markdown(story, str(caminho))
 
     conteudo = caminho.read_text(encoding="utf-8")
+    assert "**Prioridade**" not in conteudo
     assert "## Regras de Negócio" not in conteudo
     assert "## Critérios de Aceitação" not in conteudo
     assert "## Dependências" not in conteudo

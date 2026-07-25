@@ -53,6 +53,7 @@ skills:
   - refine_epic_metadata
   - diff_epic_versions
   - validate_traceability
+  - generate_traceability_matrix
   - export_markdown
   - update_jira_issue
   - create_jira_epic

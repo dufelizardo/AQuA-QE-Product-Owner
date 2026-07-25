@@ -78,6 +78,9 @@ uv run python run.py --modo lote --arquivo prd.txt --saida epic_output/ --criar-
 
 # An Epic from a Confluence Cloud page (PRD)
 uv run python run.py --modo lote --confluence "https://your-site.atlassian.net/wiki/.../pages/163841/..." --criar-jira
+
+# Ask for each story's priority (High/Medium/Low) after acceptance, and export the Epic's Traceability Matrix
+uv run python run.py --modo lote --arquivo prd.txt --saida epic_output/ --priorizar --saida-rtm
 ```
 
 `--saida` is optional in both modes (without it, the result is only printed to the terminal). To use `--jira`, fill in `JIRA_BASE_URL`, `JIRA_EMAIL` and `JIRA_API_TOKEN` in `.env` (the token is generated at `id.atlassian.com/manage-profile/security/api-tokens`).
@@ -90,11 +93,15 @@ Batch mode (`--modo lote`) stops right after defining each Epic (title, objectiv
 
 `--modo prd` generates a full PRD from an informal idea (`--arquivo`/`--texto`), goes through the same INVEST/DoR-equivalent validation, independent review and interactive refinement loop as a User Story, and — once explicitly accepted — can be exported (`--saida`), published as a new Confluence page (`--publicar-confluence`, requires `CONFLUENCE_SPACE_KEY`), and/or become the input for batch mode (the CLI asks whether to continue and generate the Epic from it). See `run.py --help` for all options.
 
+`--priorizar` (single-story/batch modes, after acceptance) asks the priority of each story — High/Medium/Low — always decided by you, never suggested by the agent: `dor.md`/`scrum_guide.md` assign backlog ordering to the Product Owner. `estimate` stays permanently out of scope for the same reason in reverse — `dor.md` assigns estimation to the development team (Planning Poker), not to the PO alone, so this agent doesn't attempt it.
+
+`--saida-rtm` (batch mode only) exports the Epic's Traceability Matrix (`RTM.md`, inside the `--saida` folder) — requirement → story → acceptance criteria → status, plus the same inconsistency checks as `validate_traceability` (duplicated goals, missing business value, orphan requirements). Scope is limited to PRD-requirement → Epic → Story → Acceptance Criteria — the Task/Code/Tests/Release layers don't exist in this agent.
+
 ## Status
 
 `docs/agent/`, `docs/standards/` and `knowledge/` (except `domain/`, `regulations/` and `examples/`, which depend on a real client/project) are filled in with real content.
 
-In `src/`, all 39 skills and the four workflows are implemented and work end to end with local models via Ollama:
+In `src/`, all 40 skills and the four workflows are implemented and work end to end with local models via Ollama:
 
 - **PRD mode** (`workflow/generate_prd.py`, via `run.py --modo prd`) — the "Idea → PRD" step: `generate_prd` (LLM `mistral`) writes a full PRD from an informal idea (context/problem, objective, target audience, scope, out-of-scope, functional/non-functional requirements, success criteria, risks — per `docs/standards/prd_standard.md`), `validate_prd` (pure Python checklist) → `review_prd` (reviewer LLM `phi4`) → the same interactive refinement loop as User Story (`generate_prd_clarifying_questions` + `refine_prd`) → explicit human acceptance. Once accepted, `format_prd_markdown` produces the final text, which can be exported, published to Confluence (`create_confluence_page`, via `--publicar-confluence`), and/or feed directly into batch mode.
 - **Single-story mode** (`workflow/generate_user_story.py`) — `read_text_file` → `extract_requirements` → `identify_actor`/`identify_goal`/`identify_business_rules` → `generate_story` (LLM `mistral`) → `validate_story` (pure Python checklist) → `review_story` (reviewer LLM `phi4`, independent from the generator) → final status. For `chat` input specifically, `parse_chat_transcript`/`format_chat_transcript` (pure Python, no LLM) normalize a multi-speaker transcript (`"PO: ...\nDev: ..."`) into `"Speaker: message"` paragraphs before any of this runs; plain-text input with no identifiable speaker passes through unchanged.

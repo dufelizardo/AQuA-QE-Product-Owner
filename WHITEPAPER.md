@@ -86,14 +86,14 @@ Entrada completa (.txt/Markdown/Confluence/Jira)
 Camadas do código (`src/aqua_qe_product_owner/`):
 
 - **`models/`** — estruturas de dados: `UserStory`, `Epic` (com `UnresolvedItem`), `AcceptanceCriteria`, `BusinessRule`, `Actor`, `Requirement`, `PRDContext`, `PRDDraft`, e o enum `StoryStatus` (`draft_validated` / `pending_clarification` / `accepted`).
-- **`skills/`** — 39 funções, cada uma com um único efeito colateral e uma única responsabilidade (ver seção 5).
+- **`skills/`** — 40 funções, cada uma com um único efeito colateral e uma única responsabilidade (ver seção 5).
 - **`workflow/`** — orquestração da sequência de skills por caso de uso: `generate_prd.py` (`generate_prd_draft` → gera o PRD a partir de uma ideia; `refine_prd_draft` → refina com respostas humanas), `generate_user_story.py` (`finalize_story`), `generate_epic.py` (`generate_epic_shape` → define o Épico; `generate_epic_stories` → divide em User Stories e finaliza; `generate_epic` → wrapper de conveniência que encadeia as duas, sem checkpoint humano), `generate_acceptance.py`, `refine_story.py`.
 - **`orchestrator/product_owner.py`** — ponto de entrada único (`handle_request(entrada, modo)`), decide entre modo `"unitario"` e `"lote"`.
 - **`services/`** — integrações externas, introduzidas incrementalmente, uma por consumidor real: `llm_service` (Ollama), `embedding_service` (Ollama), `rag_service` (Qdrant embarcado), `jira_service` e `confluence_service` (REST API + httpx).
 
 Deliberadamente **não existe** uma camada de `Feature` entre Épico e User Story no código (só como template em `knowledge/templates/feature.md`). A avaliação registrada no projeto concluiu que essa camada tem valor real, mas custo desproporcional para o volume de PRDs testados até agora — fica para quando um PRD grande o suficiente justificar o agrupamento, em vez de ser construída especulativamente.
 
-## 5. As 39 skills
+## 5. As 40 skills
 
 Skills sem LLM (Python puro, determinísticas):
 
@@ -101,6 +101,7 @@ Skills sem LLM (Python puro, determinísticas):
 - `format_prd_markdown` — formata o PRD em Markdown (exportação local e corpo da página do Confluence).
 - `diff_story_versions`/`diff_epic_versions` — changelog entre versões (regras/critérios novos vs. descontinuados; para Épico, também objetivo/escopo/valor antes-depois).
 - `validate_traceability` — duplicidade, ausência de valor de negócio, requisitos órfãos.
+- `generate_traceability_matrix` — formata a Matriz de Rastreabilidade do Épico (requisito → story → critérios de aceitação → status) reaproveitando `validate_traceability`, exportável via `--saida-rtm`.
 - `parse_chat_transcript`/`format_chat_transcript` — reconhecem e normalizam transcrições de chat multi-remetente na entrada `--texto`, sem alterar texto corrido sem remetente identificável.
 
 Skills com LLM gerador (`OLLAMA_MODEL`, padrão `mistral`):
@@ -145,6 +146,8 @@ Importante: esse ciclo não é só um portão de aprovação. A resposta humana 
 - **Lote/Épico(s)** (`--modo lote`) — em duas fases: primeiro `extract_prd_context` + `identify_epic_groups` (agrupa os requisitos extraídos por coerência temática — um PRD coeso vira um único Épico; um PRD com frentes distintas pode virar vários) + `generate_epic_metadata` por grupo definem título/objetivo/escopo/valor/critérios de cada Épico candidato a partir do texto de origem — **sem gerar nenhuma User Story ainda** — e `validate_epic` confere o checklist automático de cada um; o CLI então apresenta, **por Épico, individualmente**, um menu de recepção (gerar as User Stories agora / refinar o Épico / não continuar com este Épico) — escolher refinar entra no ciclo `generate_epic_clarifying_questions` → resposta humana → `refine_epic_metadata` → `validate_epic`/`review_epic`, repetido até aprovar ou o usuário desistir. Só os Épicos confirmados (opção 1, com ou sem refinamento prévio) são divididos em User Stories (uma por requisito do seu grupo), cada uma passando pelo pipeline completo do modo unitário; itens ambíguos viram `unresolved_items` sem travar o restante do lote; `validate_traceability`, `review_epic` (agora com as stories existentes) e `diff_epic_versions` (changelog do Épico, se refinado) rodam antes do refinamento por story, um Épico de cada vez. Entrada via `--arquivo`, `--jira` ou `--confluence`.
 - **`--criar-jira`** (modo lote) — após aceitação humana explícita **de cada Épico** (pergunta individual, um Épico de cada vez), cria o ticket de Épico e cada User Story como ticket filho no Jira Cloud (vínculo `parent` simples, assume projeto *team-managed*). Se o Épico veio de `--jira` e o lote resultou em um único Épico, também é oferecido persistir a versão refinada de volta no mesmo ticket (`update_jira_epic`), em vez de só criar tickets novos.
 - **`--publicar-confluence`** (modo prd) — após aceitação humana explícita do PRD, pergunta o título e publica a página no Confluence Cloud (`create_confluence_page`), retornando a URL criada.
+- **`--priorizar`** (modos unitário/lote) — após o aceite de cada história, pergunta a prioridade (Alta/Média/Baixa) sempre ao humano/PO, nunca sugerida pelo agente: `dor.md`/`scrum_guide.md` atribuem a ordenação do backlog ao PO. `estimate` fica permanentemente fora de escopo pelo motivo inverso — é o time, via Planning Poker, quem estima (`dor.md`), não o PO sozinho.
+- **`--saida-rtm`** (modo lote) — exporta a Matriz de Rastreabilidade do Épico (`generate_traceability_matrix`, `RTM.md` dentro da pasta de `--saida`), cobrindo PRD-requisito → Épico → Story → Critério de Aceitação (as camadas Task/Código/Testes/Release não existem neste agente).
 
 ## 8. Integrações reais
 
@@ -172,6 +175,7 @@ Métricas de sucesso definidas no PRD: redução do tempo de refinamento, taxa d
 
 ## 11. O que ainda falta (deliberadamente adiado, não esquecido)
 
+- **`UserStory.estimate`** — **permanentemente** fora de escopo, não uma questão de fase: `knowledge/methodology/dor.md` atribui a estimativa (Planning Poker, story points) ao time de desenvolvimento, não ao Product Owner sozinho — este agente não pode replicar uma cerimônia síncrona do time. `priority` já está implementado (`--priorizar`, seção 7), sempre decidido pelo humano/PO.
 - **Camada `Feature`** entre Épico e User Story — avaliada e adiada até um PRD grande o suficiente justificar o agrupamento (ver seção 4).
 - **Indexação de `knowledge/domain/`** — estrutura de pastas pronta (requisitos, regras de negócio, processos, telas, API, banco, glossário), vazia até haver um cliente/projeto real para popular.
 - **Memória de projeto/longo prazo** (`memory.md`) — distinta do RAG sobre `knowledge/methodology/`, ainda não implementada.

@@ -44,7 +44,7 @@ Entrada (.txt/Markdown/chat/Jira/Confluence)
 ```
 
 - `src/aqua_qe_product_owner/models/` — `UserStory`, `Epic` (com `UnresolvedItem`), `AcceptanceCriteria`, `BusinessRule`, `Actor`, `Requirement`, `PRDContext`, `PRDDraft`, `ChatMessage`, enum `StoryStatus`.
-- `src/aqua_qe_product_owner/skills/` — 39 funções de responsabilidade única (ver `docs/agent/skills.md`).
+- `src/aqua_qe_product_owner/skills/` — 40 funções de responsabilidade única (ver `docs/agent/skills.md`).
 - `src/aqua_qe_product_owner/workflow/` — orquestra a sequência de skills por caso de uso (`generate_prd`, `generate_user_story`, `generate_epic`, `generate_acceptance`, `refine_story`).
 - `src/aqua_qe_product_owner/orchestrator/product_owner.py` — ponto de entrada único, `handle_request(entrada, modo)`.
 - `src/aqua_qe_product_owner/services/` — integrações externas: `llm_service`/`embedding_service` (Ollama), `rag_service` (Qdrant embarcado), `jira_service`/`confluence_service` (REST API + httpx).
@@ -59,6 +59,8 @@ Entrada (.txt/Markdown/chat/Jira/Confluence)
 - **Testes sempre mockam** Ollama/Jira/Confluence — nenhum teste em `tests/` faz chamada real de rede. Ao adicionar um teste para uma skill/service novo, siga esse padrão.
 - **Camada `Feature`** (entre Epic e User Story) foi avaliada e deliberadamente adiada — existe só como template em `knowledge/templates/feature.md`, sem model/skill/workflow. Não implementar especulativamente; ver seção 4 e 11 do `WHITEPAPER.md` para o raciocínio completo.
 - **`knowledge/domain/`** está vazio de propósito (aguardando um cliente/projeto real) — não confundir com pasta incompleta.
+- **`priority` é sempre decisão humana** (`--priorizar`, modos unitario/lote): o CLI pergunta Alta/Média/Baixa por história, após o aceite — nenhuma skill/LLM sugere prioridade (mesmo princípio de "nunca inventar decisão de negócio" de GR-1). `estimate` fica **permanentemente fora de escopo** — `knowledge/methodology/dor.md` atribui estimativa ao time (Planning Poker), não ao PO sozinho; não é algo este agente pode replicar.
+- **RTM (`generate_traceability_matrix`, `--saida-rtm`, modo lote)** — reaproveita `validate_traceability`; cobre só PRD-requisito → Épico → Story → Critério de Aceitação (as camadas Task/Código/Testes/Release não existem neste agente).
 
 ## Onde procurar mais detalhe
 

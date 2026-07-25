@@ -8,6 +8,10 @@ def export_markdown(story: UserStory, caminho: str) -> None:
         "",
         f"**ID**: {story.id}",
         f"**Status**: {story.status.value}",
+    ]
+    if story.priority:
+        linhas.append(f"**Prioridade**: {story.priority}")
+    linhas += [
         "",
         "## Descrição",
         "",

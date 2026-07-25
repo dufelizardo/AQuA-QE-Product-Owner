@@ -86,14 +86,14 @@ Full input (.txt/Markdown/Confluence/Jira)
 Code layers (`src/aqua_qe_product_owner/`):
 
 - **`models/`** — data structures: `UserStory`, `Epic` (with `UnresolvedItem`), `AcceptanceCriteria`, `BusinessRule`, `Actor`, `Requirement`, `PRDContext`, `PRDDraft`, and the `StoryStatus` enum (`draft_validated` / `pending_clarification` / `accepted`).
-- **`skills/`** — 39 functions, each with a single side effect and a single responsibility (see section 5).
+- **`skills/`** — 40 functions, each with a single side effect and a single responsibility (see section 5).
 - **`workflow/`** — orchestration of the skill sequence per use case: `generate_prd.py` (`generate_prd_draft` → generates the PRD from an idea; `refine_prd_draft` → refines it with human answers), `generate_user_story.py` (`finalize_story`), `generate_epic.py` (`generate_epic_shape` → defines the Epic; `generate_epic_stories` → splits it into User Stories and finalizes it; `generate_epic` → convenience wrapper chaining both, with no human checkpoint), `generate_acceptance.py`, `refine_story.py`.
 - **`orchestrator/product_owner.py`** — single entry point (`handle_request(entrada, modo)`), decides between `"unitario"` (single) and `"lote"` (batch) mode.
 - **`services/`** — external integrations, introduced incrementally, one per real consumer: `llm_service` (Ollama), `embedding_service` (Ollama), `rag_service` (embedded Qdrant), `jira_service` and `confluence_service` (REST API + httpx).
 
 There is deliberately **no** `Feature` layer between Epic and User Story in the code (it only exists as a template in `knowledge/templates/feature.md`). The evaluation recorded in the project concluded that this layer has real value, but a disproportionate cost for the volume of PRDs tested so far — it's deferred until a PRD large enough justifies the grouping, instead of being built speculatively.
 
-## 5. The 39 skills
+## 5. The 40 skills
 
 Skills with no LLM (pure Python, deterministic):
 
@@ -101,6 +101,7 @@ Skills with no LLM (pure Python, deterministic):
 - `format_prd_markdown` — formats the PRD as Markdown (local export and Confluence page body).
 - `diff_story_versions`/`diff_epic_versions` — changelog between versions (new vs. discontinued rules/criteria; for Epic, also objective/scope/value before-after).
 - `validate_traceability` — duplication, missing business value, orphan requirements.
+- `generate_traceability_matrix` — formats the Epic's Traceability Matrix (requirement → story → acceptance criteria → status), reusing `validate_traceability`, exportable via `--saida-rtm`.
 - `parse_chat_transcript`/`format_chat_transcript` — recognize and normalize multi-speaker chat transcripts on the `--texto` input, leaving plain text with no identifiable speaker unchanged.
 
 Skills using the generator LLM (`OLLAMA_MODEL`, default `mistral`):
@@ -145,6 +146,8 @@ Importantly, this cycle isn't just an approval gate. The human's answer to each 
 - **Batch/Epic(s)** (`--modo lote`) — in two phases: first `extract_prd_context` + `identify_epic_groups` (groups the extracted requirements by thematic coherence — a cohesive PRD becomes a single Epic; a PRD covering distinct fronts can become several) + `generate_epic_metadata` per group define each candidate Epic's title/objective/scope/value/criteria from the source text — **without generating any User Story yet** — and `validate_epic` checks each one's automatic checklist; the CLI then presents, **per Epic, individually**, a reception menu (generate the User Stories now / refine the Epic / don't continue with this Epic) — choosing to refine enters the `generate_epic_clarifying_questions` → human answer → `refine_epic_metadata` → `validate_epic`/`review_epic` cycle, repeated until approved or the user gives up. Only the confirmed Epics (option 1, with or without prior refinement) are split into User Stories (one per requirement in its group), each going through the full single-mode pipeline; ambiguous items become `unresolved_items` without blocking the rest of the batch; `validate_traceability`, `review_epic` (now with the stories in place), and `diff_epic_versions` (Epic changelog, if refined) run before per-story refinement, one Epic at a time. Input via `--arquivo`, `--jira`, or `--confluence`.
 - **`--criar-jira`** (batch mode) — after explicit human acceptance **of each Epic** (individual prompt, one Epic at a time), creates the Epic ticket and each User Story as a child ticket in Jira Cloud (simple `parent` link, assumes a *team-managed* project). If the Epic came from `--jira` and the batch resolved to a single Epic, it also offers to persist the refined version back into that same ticket (`update_jira_epic`) instead of only creating new ones.
 - **`--publicar-confluence`** (PRD mode) — after explicit human acceptance of the PRD, asks for a title and publishes the page to Confluence Cloud (`create_confluence_page`), returning the created URL.
+- **`--priorizar`** (single/batch modes) — after each story is accepted, asks for its priority (High/Medium/Low), always from the human/PO, never suggested by the agent: `dor.md`/`scrum_guide.md` assign backlog ordering to the PO. `estimate` stays permanently out of scope for the opposite reason — it's the team, via Planning Poker, who estimates (`dor.md`), not the PO alone.
+- **`--saida-rtm`** (batch mode) — exports the Epic's Traceability Matrix (`generate_traceability_matrix`, `RTM.md` inside the `--saida` folder), covering PRD-requirement → Epic → Story → Acceptance Criteria (the Task/Code/Tests/Release layers don't exist in this agent).
 
 ## 8. Real integrations
 
@@ -172,6 +175,7 @@ Success metrics defined in the PRD: reduction in refinement time, acceptance rat
 
 ## 11. What's still missing (deliberately deferred, not forgotten)
 
+- **`UserStory.estimate`** — **permanently** out of scope, not a phasing question: `knowledge/methodology/dor.md` assigns estimation (Planning Poker, story points) to the development team, not to the Product Owner alone — this agent can't replicate a synchronous team ceremony. `priority` is already implemented (`--priorizar`, section 7), always decided by the human/PO.
 - **`Feature` layer** between Epic and User Story — evaluated and deferred until a PRD large enough justifies the grouping (see section 4).
 - **Indexing of `knowledge/domain/`** — folder structure ready (requirements, business rules, processes, screens, API, database, glossary), empty until a real client/project exists to populate it.
 - **Project/long-term memory** (`memory.md`) — distinct from the RAG over `knowledge/methodology/`, not yet implemented.
