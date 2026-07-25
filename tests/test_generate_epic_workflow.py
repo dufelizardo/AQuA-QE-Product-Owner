@@ -201,6 +201,24 @@ def test_generate_epic_shape_marca_pending_clarification_quando_validate_falha(m
     assert epic.status == StoryStatus.PENDING_CLARIFICATION
 
 
+def test_load_epic_shape_marca_draft_validated_quando_validate_aprova(monkeypatch):
+    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: True)
+
+    epic = Epic(id="EPIC-001", title="t", objective="o", scope="e", value="v")
+    resultado = workflow_module.load_epic_shape(epic)
+
+    assert resultado.status == StoryStatus.DRAFT_VALIDATED
+
+
+def test_load_epic_shape_marca_pending_clarification_quando_validate_reprova(monkeypatch):
+    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: False)
+
+    epic = Epic(id="EPIC-001", title="", objective="", scope="", value="")
+    resultado = workflow_module.load_epic_shape(epic)
+
+    assert resultado.status == StoryStatus.PENDING_CLARIFICATION
+
+
 def test_generate_epic_stories_divide_o_epico_ja_definido_em_stories(monkeypatch):
     from aqua_qe_product_owner.models import Epic
 

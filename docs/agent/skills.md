@@ -2,7 +2,7 @@
 
 > Documentação das skills implementadas em `../../src/aqua_qe_product_owner/skills/`, no formato definido em `../standards/skill_standard.md`. Ordem conforme `agent_manifest.yaml`. Tipos de entrada/saída referem-se às estruturas de `../../src/aqua_qe_product_owner/models/`.
 >
-> `extract_requirements`, `extract_prd_context`, `identify_epic_groups`, `identify_actor`, `identify_goal`, `identify_business_rules`, `identify_dependencies`, `generate_story`, `generate_clarifying_questions`, `refine_story`, `generate_epic_metadata`, `generate_epic_clarifying_questions` e `refine_epic_metadata` usam um LLM local via Ollama (`../../src/aqua_qe_product_owner/services/llm_service.py`, modelo configurável por `OLLAMA_MODEL`, padrão `mistral`). `validate_story`, `validate_epic` e `diff_story_versions`/`diff_epic_versions`/`validate_traceability`/`generate_traceability_matrix` são Python puro, sem LLM (ver `evaluation.md`). `review_story` e `review_epic` usam um segundo LLM, diferente do gerador (`OLLAMA_REVIEW_MODEL`, padrão `phi4`), como revisor independente (LLM-como-juiz). `retrieve_chunks` usa embedding local (`services/embedding_service.py`, modelo `bge-m3`) e um Qdrant embutido/local (`services/rag_service.py`, sem servidor externo). `read_jira_issue`, `update_jira_issue`, `create_jira_epic`, `update_jira_epic` e `create_jira_story` usam a API REST do Jira Cloud (`services/jira_service.py`) — todas exceto `read_jira_issue` só são chamadas após aceitação humana explícita no CLI (`run.py`), nunca automaticamente. `read_confluence_page` usa a API REST do Confluence Cloud (`services/confluence_service.py`), reaproveitando as mesmas credenciais do Jira (mesma conta Atlassian) — leitura apenas; geração/edição/publicação de PRD (incluindo escrita no Confluence) passou a ser responsabilidade exclusiva do agente irmão AQuA-QE Product Manager.
+> `extract_requirements`, `extract_prd_context`, `identify_epic_groups`, `identify_actor`, `identify_goal`, `identify_business_rules`, `identify_dependencies`, `generate_story`, `generate_clarifying_questions`, `refine_story`, `generate_epic_metadata`, `generate_epic_clarifying_questions` e `refine_epic_metadata` usam um LLM local via Ollama (`../../src/aqua_qe_product_owner/services/llm_service.py`, modelo configurável por `OLLAMA_MODEL`, padrão `mistral`). `validate_story`, `validate_epic` e `diff_story_versions`/`diff_epic_versions`/`validate_traceability`/`generate_traceability_matrix`/`format_epic_markdown`/`parse_epic_markdown` são Python puro, sem LLM (ver `evaluation.md`). `review_story` e `review_epic` usam um segundo LLM, diferente do gerador (`OLLAMA_REVIEW_MODEL`, padrão `phi4`), como revisor independente (LLM-como-juiz). `retrieve_chunks` usa embedding local (`services/embedding_service.py`, modelo `bge-m3`) e um Qdrant embutido/local (`services/rag_service.py`, sem servidor externo). `read_jira_issue`, `update_jira_issue`, `create_jira_epic`, `update_jira_epic` e `create_jira_story` usam a API REST do Jira Cloud (`services/jira_service.py`) — todas exceto `read_jira_issue` só são chamadas após aceitação humana explícita no CLI (`run.py`), nunca automaticamente. `read_confluence_page` usa a API REST do Confluence Cloud (`services/confluence_service.py`), reaproveitando as mesmas credenciais do Jira (mesma conta Atlassian) — leitura apenas; geração/edição/publicação de PRD (incluindo escrita no Confluence) passou a ser responsabilidade exclusiva do agente irmão AQuA-QE Product Manager.
 
 ## read_text_file
 
@@ -246,6 +246,24 @@
 - **Efeitos colaterais**: nenhum — Python puro, sem LLM.
 - **Erros esperados**: nenhum.
 - **Dependências**: consome `epic.requirements`/`epic.stories` e o resultado de `validate_traceability`; usada pelo CLI (`run.py --saida-rtm`, modo lote) após o export das User Stories do Épico.
+
+## format_epic_markdown
+
+- **Descrição**: formata o Epic (estágio *shape*: título/objetivo/escopo/valor/critérios de aceitação/requisitos) em Markdown, invertível por `parse_epic_markdown`. Não inclui `stories`, `prd_context`, `status` nem `review_notes`.
+- **Entrada**: `epic: Epic`.
+- **Saída**: `str` — Epic formatado em Markdown.
+- **Efeitos colaterais**: nenhum — Python puro, sem LLM.
+- **Erros esperados**: nenhum.
+- **Dependências**: nenhuma outra skill; usada pelo CLI (`run.py`) para exportar `<EPIC-ID>.md` junto das User Stories, sempre que `--saida` é informado.
+
+## parse_epic_markdown
+
+- **Descrição**: reconstrói um Epic (estágio *shape*) a partir do Markdown produzido por `format_epic_markdown`, preservando a redação original campo a campo — fecha a lacuna de não existir forma de carregar um Épico já pronto (só se gerava do zero a partir de um PRD). IDs de requisito/critério são regenerados sequencialmente, não preservados do arquivo.
+- **Entrada**: `texto: str`.
+- **Saída**: `Epic` — sem `stories` (o parser cobre só o estágio anterior a elas existirem).
+- **Efeitos colaterais**: nenhum — Python puro, sem LLM.
+- **Erros esperados**: nenhum (seções ausentes/malformadas resultam em campos vazios, mesmo padrão de robustez do resto do agente).
+- **Dependências**: nenhuma outra skill; usada pelo CLI (`run.py --epic-existente`, modo lote) junto de `workflow/generate_epic.py::load_epic_shape`, no lugar de `generate_epics_shape`.
 
 ## export_markdown
 

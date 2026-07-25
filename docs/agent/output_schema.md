@@ -89,3 +89,7 @@ Ao aceitar cada Épico (CLI, `run.py --criar-jira`, pergunta feita uma vez por �
 ## Formato de exportação (`export_markdown`)
 
 A saída em Markdown segue diretamente a estrutura de `../../knowledge/templates/user_story.md` (campos narrativos) e `../../knowledge/templates/acceptance_criteria.md` (blocos Gherkin), preenchidos a partir deste schema.
+
+## Formato de exportação do Epic (`format_epic_markdown`/`parse_epic_markdown`)
+
+Captura só o estágio *shape* do Epic (título, `id`, objetivo, escopo, valor, requisitos com `source_reference`, critérios de aceitação) — não inclui `stories`, `prd_context`, `status` nem `review_notes`. Exportado como `<EPIC-ID>.md` sempre que `--saida` é informado (modo lote); `parse_epic_markdown` faz o caminho inverso (`--epic-existente`), regenerando os IDs de requisito/critério sequencialmente em vez de preservá-los do arquivo.

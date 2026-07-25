@@ -79,6 +79,9 @@ uv run python run.py --modo lote --confluence "https://seu-site.atlassian.net/wi
 
 # Perguntar a prioridade (Alta/Média/Baixa) de cada história após o aceite, e exportar a Matriz de Rastreabilidade do Épico
 uv run python run.py --modo lote --arquivo prd.txt --saida saida_epic/ --priorizar --saida-rtm
+
+# Carregar um Épico já exportado (<EPIC-ID>.md) em vez de gerar um novo a partir de um PRD
+uv run python run.py --modo lote --epic-existente saida_epic/EPIC-001/EPIC-001.md --saida saida_epic/
 ```
 
 `--saida` é opcional em ambos os modos (sem ela, o resultado só é impresso no terminal). Para usar `--jira`, preencha `JIRA_BASE_URL`, `JIRA_EMAIL` e `JIRA_API_TOKEN` no `.env` (o token é gerado em `id.atlassian.com/manage-profile/security/api-tokens`).
@@ -93,11 +96,13 @@ O modo lote (`--modo lote`) para logo após definir cada Épico (título, objeti
 
 `--saida-rtm` (só no modo lote) exporta a Matriz de Rastreabilidade do Épico (`RTM.md`, dentro da pasta de `--saida`) — requisito → story → critérios de aceitação → status, além das mesmas checagens de inconsistência de `validate_traceability` (objetivos duplicados, sem valor de negócio, requisitos órfãos). Escopo limitado a PRD-requisito → Épico → Story → Critério de Aceitação — as camadas Task/Código/Testes/Release não existem neste agente.
 
+`--epic-existente <arquivo>` (só no modo lote) carrega um Épico já exportado (`<EPIC-ID>.md`, estágio shape: título/objetivo/escopo/valor/critérios de aceitação/requisitos, ainda sem stories) em vez de gerar um novo a partir de um PRD — entra direto no mesmo menu de recepção (refinar de novo ou gerar as User Stories agora). IDs de requisito/critério são regenerados sequencialmente ao carregar, nunca preservados do arquivo. Sempre que `--saida` é informado, o próprio Épico agora também é exportado como `<EPIC-ID>.md` (antes só suas Stories eram) — é isso que torna esse ciclo possível.
+
 ## Status
 
 `docs/agent/`, `docs/standards/` e `knowledge/` (exceto `domain/`, `regulations/` e `examples/`, que dependem de um cliente/projeto real) estão com conteúdo real preenchido.
 
-Em `src/`, todas as 32 skills e os quatro workflows estão implementados e funcionam de ponta a ponta com modelos locais via Ollama:
+Em `src/`, todas as 34 skills e os quatro workflows estão implementados e funcionam de ponta a ponta com modelos locais via Ollama:
 
 - **Modo unitário** (`workflow/generate_user_story.py`) — `read_text_file` → `extract_requirements` → `identify_actor`/`identify_goal`/`identify_business_rules` → `generate_story` (LLM `mistral`) → `validate_story` (checklist Python puro) → `review_story` (LLM revisor `phi4`, independente do gerador) → status final. Para entrada `chat` especificamente, `parse_chat_transcript`/`format_chat_transcript` (Python puro, sem LLM) normalizam uma transcrição com múltiplos remetentes (`"PO: ...\nDev: ..."`) em parágrafos `"Remetente: mensagem"` antes de qualquer uma dessas rodar; texto corrido sem remetente identificável passa inalterado.
 - **Modo lote** (`workflow/generate_epic.py`) — em duas fases: `generate_epics_shape` extrai os requisitos, extrai o contexto não funcional do PRD (`extract_prd_context` — visão, requisitos não funcionais, restrições, critérios de sucesso, riscos, dependências, guardados em `epic.prd_context`), agrupa os requisitos por coerência temática (`identify_epic_groups` — um PRD coeso vira um único grupo; um PRD com frentes distintas pode virar vários, com fallback seguro para um grupo só se o agrupamento do LLM for inconsistente) e define título, objetivo, escopo, valor e critérios de aceitação de alto nível de cada Épico candidato só a partir do texto de origem (nenhuma story gerada ainda), e `validate_epic` roda o checklist automático de cada um — é nesse ponto que `run.py --modo lote` apresenta, por Épico individualmente, um menu de recepção (gerar as stories agora / refinar o Épico / não continuar com este Épico), antes de pagar o custo de gerar qualquer story. Escolher refinar roda `generate_epic_clarifying_questions` → resposta humana → `refine_epic_metadata` → `validate_epic`/`review_epic`, repetido até aprovar ou o usuário desistir (`review_epic` só roda nesse ponto para o Épico que o usuário de fato escolhe refinar, não para todos os impressos). Só para os Épicos confirmados, `generate_epics_stories` aplica o pipeline de story unitária a cada requisito extraído, por Épico (itens ambíguos viram `unresolved_items` sem travar o restante do lote), e então roda `validate_traceability` (stories duplicadas, sem valor de negócio, requisitos órfãos), `review_epic` (LLM revisor `phi4`, agora conseguindo avaliar coerência com as stories que agrupa) e `diff_epic_versions` (changelog, se o Épico foi refinado) para cada Épico.

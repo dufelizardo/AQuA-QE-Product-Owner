@@ -44,7 +44,7 @@ Entrada (.txt/Markdown/chat/Jira/Confluence)
 ```
 
 - `src/aqua_qe_product_owner/models/` — `UserStory`, `Epic` (com `UnresolvedItem`), `AcceptanceCriteria`, `BusinessRule`, `Actor`, `Requirement`, `PRDContext`, `ChatMessage`, enum `StoryStatus`.
-- `src/aqua_qe_product_owner/skills/` — 32 funções de responsabilidade única (ver `docs/agent/skills.md`).
+- `src/aqua_qe_product_owner/skills/` — 34 funções de responsabilidade única (ver `docs/agent/skills.md`).
 - `src/aqua_qe_product_owner/workflow/` — orquestra a sequência de skills por caso de uso (`generate_user_story`, `generate_epic`, `generate_acceptance`, `refine_story`).
 - `src/aqua_qe_product_owner/orchestrator/product_owner.py` — ponto de entrada único, `handle_request(entrada, modo)`.
 - `src/aqua_qe_product_owner/services/` — integrações externas: `llm_service`/`embedding_service` (Ollama), `rag_service` (Qdrant embarcado), `jira_service`/`confluence_service` (REST API + httpx).
@@ -62,6 +62,7 @@ Entrada (.txt/Markdown/chat/Jira/Confluence)
 - **`knowledge/domain/`** está vazio de propósito (aguardando um cliente/projeto real) — não confundir com pasta incompleta.
 - **`priority` é sempre decisão humana** (`--priorizar`, modos unitario/lote): o CLI pergunta Alta/Média/Baixa por história, após o aceite — nenhuma skill/LLM sugere prioridade (mesmo princípio de "nunca inventar decisão de negócio" de GR-1). `estimate` fica **permanentemente fora de escopo** — `knowledge/methodology/dor.md` atribui estimativa ao time (Planning Poker), não ao PO sozinho; não é algo este agente pode replicar.
 - **RTM (`generate_traceability_matrix`, `--saida-rtm`, modo lote)** — reaproveita `validate_traceability`; cobre só PRD-requisito → Épico → Story → Critério de Aceitação (as camadas Task/Código/Testes/Release não existem neste agente).
+- **`--epic-existente` (modo lote)** — carrega um Épico `.md` já exportado (`parse_epic_markdown`/`format_epic_markdown`, estágio *shape*: título/objetivo/escopo/valor/critérios/requisitos, sem stories) em vez de gerar um novo a partir de um PRD; entra direto no mesmo menu de recepção (refinar ou gerar as User Stories). IDs de requisito/critério são regenerados sequencialmente ao carregar, nunca preservados do arquivo.
 
 ## Onde procurar mais detalhe
 

@@ -19,6 +19,7 @@ from aqua_qe_product_owner.skills.diff_epic_versions import diff_epic_versions  
 from aqua_qe_product_owner.skills.diff_story_versions import diff_story_versions  # noqa: E402
 from aqua_qe_product_owner.skills.export_markdown import export_markdown  # noqa: E402
 from aqua_qe_product_owner.skills.format_chat_transcript import format_chat_transcript  # noqa: E402
+from aqua_qe_product_owner.skills.format_epic_markdown import format_epic_markdown  # noqa: E402
 from aqua_qe_product_owner.skills.generate_clarifying_questions import (  # noqa: E402
     generate_clarifying_questions,
 )
@@ -29,6 +30,7 @@ from aqua_qe_product_owner.skills.generate_epic_clarifying_questions import (  #
     generate_epic_clarifying_questions,
 )
 from aqua_qe_product_owner.skills.parse_chat_transcript import parse_chat_transcript  # noqa: E402
+from aqua_qe_product_owner.skills.parse_epic_markdown import parse_epic_markdown  # noqa: E402
 from aqua_qe_product_owner.skills.read_confluence_page import read_confluence_page  # noqa: E402
 from aqua_qe_product_owner.skills.read_jira_issue import read_jira_issue  # noqa: E402
 from aqua_qe_product_owner.skills.read_text_file import read_text_file  # noqa: E402
@@ -39,6 +41,7 @@ from aqua_qe_product_owner.workflow.generate_epic import (  # noqa: E402
     finalize_epic,
     generate_epics_shape,
     generate_epics_stories,
+    load_epic_shape,
     refine_epic_shape,
 )
 from aqua_qe_product_owner.workflow.refine_story import refine_user_story  # noqa: E402
@@ -307,6 +310,8 @@ def _processar_epic_aceito(
         pasta_epic.mkdir(parents=True, exist_ok=True)
         for story in epic.stories:
             export_markdown(story, str(pasta_epic / f"{story.id}.md"))
+        with open(pasta_epic / f"{epic.id}.md", "w", encoding="utf-8") as arquivo:
+            arquivo.write(format_epic_markdown(epic))
         print(f"exportado para: {pasta_epic}/")
 
         if saida_rtm:
@@ -403,8 +408,12 @@ def _rodar_lote(
     jira_epic_key: str | None = None,
     priorizar: bool = False,
     saida_rtm: bool = False,
+    epic_existente: str | None = None,
 ) -> None:
-    epics = generate_epics_shape(texto)
+    if epic_existente:
+        epics = [load_epic_shape(parse_epic_markdown(read_text_file(epic_existente)))]
+    else:
+        epics = generate_epics_shape(texto)
     total = len(epics)
 
     # write-back só quando há mapeamento inequívoco 1:1 com o ticket de
@@ -457,6 +466,17 @@ def main() -> None:
     entrada.add_argument(
         "--confluence", help="URL completa ou ID de uma página do Confluence Cloud."
     )
+    entrada.add_argument(
+        "--epic-existente",
+        dest="epic_existente",
+        help=(
+            "Caminho de um Épico .md já existente (mesmo formato de "
+            "format_epic_markdown, exportado como <EPIC-ID>.md) para carregar "
+            "e continuar dali — refinar de novo ou gerar as User Stories, em "
+            "vez de gerar um Épico novo a partir de um PRD. Só válido com "
+            "--modo lote."
+        ),
+    )
     parser.add_argument(
         "--saida",
         help=(
@@ -505,11 +525,14 @@ def main() -> None:
 
     if args.saida_rtm and args.modo != "lote":
         parser.error("--saida-rtm só é válido com --modo lote.")
+    if args.epic_existente and args.modo != "lote":
+        parser.error("--epic-existente só é válido com --modo lote.")
 
-    texto = _ler_entrada(args)
     if args.modo == "unitario":
+        texto = _ler_entrada(args)
         _rodar_unitario(texto, args.saida, args.jira, args.refinar, priorizar=args.priorizar)
     else:
+        texto = "" if args.epic_existente else _ler_entrada(args)
         _rodar_lote(
             texto,
             args.saida,
@@ -518,6 +541,7 @@ def main() -> None:
             jira_epic_key=args.jira,
             priorizar=args.priorizar,
             saida_rtm=args.saida_rtm,
+            epic_existente=args.epic_existente,
         )
 
 

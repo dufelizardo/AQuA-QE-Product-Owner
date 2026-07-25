@@ -78,6 +78,19 @@ def generate_epic_shape(texto: str) -> Epic:
     return _montar_epic("EPIC-001", texto, requisitos, prd_context)
 
 
+def load_epic_shape(epic: Epic) -> Epic:
+    """Aplica o checklist automático (validate_epic) a um Epic já montado (ex.: parse_epic_markdown), decidindo o status inicial.
+
+    Mesmo ponto de generate_epic_shape, mas sem chamar generate_epic_metadata
+    — os campos (título/objetivo/escopo/valor/critérios/requisitos) já vêm
+    prontos de uma fonte externa, não são gerados por LLM aqui.
+    """
+    epic.status = (
+        StoryStatus.DRAFT_VALIDATED if validate_epic(epic) else StoryStatus.PENDING_CLARIFICATION
+    )
+    return epic
+
+
 def generate_epics_shape(texto: str) -> list[Epic]:
     """Extrai os requisitos, agrupa-os por coerência temática (identify_epic_groups) e define um Epic por grupo.
 
