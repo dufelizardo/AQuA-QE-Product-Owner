@@ -21,6 +21,11 @@ def test_happy_path_marks_draft_validated_when_review_approves(monkeypatch):
         "identify_business_rules",
         lambda texto: [BusinessRule(id="BR-001", description="regra", source_reference="fonte")],
     )
+    monkeypatch.setattr(
+        workflow_module,
+        "identify_dependencies",
+        lambda texto: ["integração com o gateway de pagamento"],
+    )
 
     def fake_generate_story(ator, objetivo, contexto):
         return UserStory(
@@ -34,6 +39,7 @@ def test_happy_path_marks_draft_validated_when_review_approves(monkeypatch):
                 AcceptanceCriteria(id="AC-001", scenario="c", given="g", when="w", then="t")
             ],
             business_rules=contexto["business_rules"],
+            dependencies=contexto["dependencies"],
             source_reference=contexto["texto_fonte"],
         )
 
@@ -44,6 +50,7 @@ def test_happy_path_marks_draft_validated_when_review_approves(monkeypatch):
 
     assert story.status == StoryStatus.DRAFT_VALIDATED
     assert story.review_notes == []
+    assert story.dependencies == ["integração com o gateway de pagamento"]
 
 
 def test_review_rejection_marks_pending_clarification(monkeypatch):
@@ -51,6 +58,7 @@ def test_review_rejection_marks_pending_clarification(monkeypatch):
     monkeypatch.setattr(workflow_module, "identify_goal", lambda texto: "fazer algo")
     monkeypatch.setattr(workflow_module, "extract_requirements", lambda texto: [])
     monkeypatch.setattr(workflow_module, "identify_business_rules", lambda texto: [])
+    monkeypatch.setattr(workflow_module, "identify_dependencies", lambda texto: [])
 
     def fake_generate_story(ator, objetivo, contexto):
         return UserStory(
@@ -84,6 +92,7 @@ def test_validate_story_failure_skips_review(monkeypatch):
     monkeypatch.setattr(workflow_module, "identify_goal", lambda texto: "fazer algo")
     monkeypatch.setattr(workflow_module, "extract_requirements", lambda texto: [])
     monkeypatch.setattr(workflow_module, "identify_business_rules", lambda texto: [])
+    monkeypatch.setattr(workflow_module, "identify_dependencies", lambda texto: [])
 
     def fake_generate_story(ator, objetivo, contexto):
         return UserStory(

@@ -14,6 +14,7 @@ from aqua_qe_product_owner.skills import (
 from aqua_qe_product_owner.skills import generate_story as generate_story_module
 from aqua_qe_product_owner.skills import identify_actor as identify_actor_module
 from aqua_qe_product_owner.skills import identify_business_rules as identify_business_rules_module
+from aqua_qe_product_owner.skills import identify_dependencies as identify_dependencies_module
 from aqua_qe_product_owner.skills import identify_epic_groups as identify_epic_groups_module
 from aqua_qe_product_owner.skills import identify_goal as identify_goal_module
 from aqua_qe_product_owner.skills import refine_prd as refine_prd_module
@@ -33,6 +34,28 @@ def test_extract_requirements_maps_json_to_models(monkeypatch):
     resultado = extract_requirements_module.extract_requirements("texto")
 
     assert resultado == [Requirement(id="REQ-001", text="requisito 1", source_reference="trecho 1")]
+
+
+def test_extract_requirements_prompt_instructs_to_exclude_non_functional_sections(monkeypatch):
+    """Regressão: extract_requirements não deve tratar requisitos não funcionais, critérios de
+    sucesso, riscos/premissas ou itens 'fora de escopo' como requisitos funcionais candidatos
+    quando o texto de entrada é um PRD com essas seções (descoberto rodando o pipeline PRD->Epic
+    de ponta a ponta com um PRD real)."""
+    captured = {}
+
+    def fake_complete_json(prompt, system=""):
+        captured["prompt"] = prompt
+        return {"requisitos": []}
+
+    monkeypatch.setattr(extract_requirements_module, "complete_json", fake_complete_json)
+
+    extract_requirements_module.extract_requirements("texto qualquer")
+
+    prompt = captured["prompt"]
+    assert "FUNCIONAIS" in prompt
+    assert "fora de escopo" in prompt.lower()
+    assert "riscos" in prompt.lower()
+    assert "critérios de sucesso" in prompt.lower()
 
 
 def test_extract_prd_context_maps_json_to_model(monkeypatch):
@@ -113,6 +136,30 @@ def test_identify_business_rules_maps_json_to_models(monkeypatch):
     assert resultado == [BusinessRule(id="BR-001", description="regra 1", source_reference="trecho")]
 
 
+def test_identify_dependencies_maps_json_to_list(monkeypatch):
+    monkeypatch.setattr(
+        identify_dependencies_module,
+        "complete_json",
+        lambda prompt, system="", model=None: {
+            "dependencias": ["integração com o gateway de pagamento"]
+        },
+    )
+
+    resultado = identify_dependencies_module.identify_dependencies("texto")
+
+    assert resultado == ["integração com o gateway de pagamento"]
+
+
+def test_identify_dependencies_returns_empty_when_llm_finds_none(monkeypatch):
+    monkeypatch.setattr(
+        identify_dependencies_module,
+        "complete_json",
+        lambda prompt, system="", model=None: {"dependencias": []},
+    )
+
+    assert identify_dependencies_module.identify_dependencies("texto") == []
+
+
 def test_generate_story_maps_json_to_model(monkeypatch):
     monkeypatch.setattr(
         generate_story_module,
@@ -132,6 +179,32 @@ def test_generate_story_maps_json_to_model(monkeypatch):
     assert story.title == "titulo gerado"
     assert story.acceptance_criteria[0].given == "g"
     assert story.source_reference == "fonte"
+    assert story.dependencies == []
+
+
+def test_generate_story_maps_dependencies_from_context(monkeypatch):
+    monkeypatch.setattr(
+        generate_story_module,
+        "complete_json",
+        lambda prompt, system="", model=None: {
+            "titulo": "titulo gerado",
+            "beneficio": "beneficio gerado",
+            "descricao": "descricao gerada",
+            "criterios_aceitacao": [{"cenario": "c", "dado": "g", "quando": "w", "entao": "t"}],
+        },
+    )
+
+    story = generate_story_module.generate_story(
+        "ator",
+        "objetivo",
+        {
+            "business_rules": [],
+            "dependencies": ["integração com o gateway de pagamento"],
+            "texto_fonte": "fonte",
+        },
+    )
+
+    assert story.dependencies == ["integração com o gateway de pagamento"]
 
 
 def test_review_story_uses_review_model_and_maps_result(monkeypatch):

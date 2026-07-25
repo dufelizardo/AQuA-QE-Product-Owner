@@ -5,6 +5,7 @@ from ..skills.generate_epic_metadata import generate_epic_metadata
 from ..skills.generate_story import generate_story
 from ..skills.identify_actor import identify_actor
 from ..skills.identify_business_rules import identify_business_rules
+from ..skills.identify_dependencies import identify_dependencies
 from ..skills.identify_epic_groups import identify_epic_groups
 from ..skills.identify_goal import identify_goal
 from ..skills.refine_epic_metadata import refine_epic_metadata
@@ -123,9 +124,11 @@ def generate_epic_stories(epic: Epic) -> Epic:
             continue
 
         regras = identify_business_rules(texto_item)
+        dependencias = identify_dependencies(texto_item)
         contexto = {
             "id": f"US-{i:03d}",
             "business_rules": regras,
+            "dependencies": dependencias,
             "texto_fonte": requisito.source_reference or texto_item,
         }
         story = generate_story(ator, objetivo, contexto)

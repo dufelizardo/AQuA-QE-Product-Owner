@@ -45,9 +45,9 @@ Gerado por `generate_prd` a partir de uma ideia informal (não de uma fonte já 
   "assumptions": ["<suposição sinalizada, se houver — deveria estar vazio quando RULE-004 é seguida>"],
   "source_reference": "<trecho ou localização na fonte de entrada, para rastreabilidade — GR-1>",
   "status": "draft_validated | pending_clarification | accepted",
-  "priority": "<opcional>",
-  "estimate": "<opcional>",
-  "dependencies": ["<opcional>"],
+  "priority": "<opcional — ainda não preenchido por nenhuma skill>",
+  "estimate": "<opcional — ainda não preenchido por nenhuma skill>",
+  "dependencies": ["<preenchido por identify_dependencies, quando identificável na fonte — GR-1>"],
   "review_notes": ["<apontamento do revisor (review_story), se houver>"]
 }
 ```

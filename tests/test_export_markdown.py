@@ -14,6 +14,7 @@ def test_export_markdown_writes_expected_sections(tmp_path):
             AcceptanceCriteria(id="AC-001", scenario="cenario", given="g", when="w", then="t")
         ],
         business_rules=[BusinessRule(id="BR-001", description="regra", source_reference="fonte")],
+        dependencies=["integração com o gateway de pagamento"],
         review_notes=["ponto de atenção"],
         source_reference="texto fonte",
         status=StoryStatus.DRAFT_VALIDATED,
@@ -29,6 +30,8 @@ def test_export_markdown_writes_expected_sections(tmp_path):
     assert "BR-001" in conteudo
     assert "## Critérios de Aceitação" in conteudo
     assert "Given g" in conteudo
+    assert "## Dependências" in conteudo
+    assert "integração com o gateway de pagamento" in conteudo
     assert "## Observações da Revisão" in conteudo
     assert "> texto fonte" in conteudo
 
@@ -50,4 +53,5 @@ def test_export_markdown_omits_empty_sections(tmp_path):
     conteudo = caminho.read_text(encoding="utf-8")
     assert "## Regras de Negócio" not in conteudo
     assert "## Critérios de Aceitação" not in conteudo
+    assert "## Dependências" not in conteudo
     assert "## Observações da Revisão" not in conteudo

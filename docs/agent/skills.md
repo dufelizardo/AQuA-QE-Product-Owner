@@ -2,7 +2,7 @@
 
 > Documentação das skills implementadas em `../../src/aqua_qe_product_owner/skills/`, no formato definido em `../standards/skill_standard.md`. Ordem conforme `agent_manifest.yaml`. Tipos de entrada/saída referem-se às estruturas de `../../src/aqua_qe_product_owner/models/`.
 >
-> `extract_requirements`, `extract_prd_context`, `identify_epic_groups`, `identify_actor`, `identify_goal`, `identify_business_rules`, `generate_story`, `generate_clarifying_questions`, `refine_story`, `generate_epic_metadata`, `generate_epic_clarifying_questions`, `refine_epic_metadata`, `generate_prd`, `generate_prd_clarifying_questions` e `refine_prd` usam um LLM local via Ollama (`../../src/aqua_qe_product_owner/services/llm_service.py`, modelo configurável por `OLLAMA_MODEL`, padrão `mistral`). `validate_story`, `validate_epic`, `validate_prd`, `format_prd_markdown` e `diff_story_versions`/`diff_epic_versions`/`validate_traceability` são Python puro, sem LLM (ver `evaluation.md`). `review_story`, `review_epic` e `review_prd` usam um segundo LLM, diferente do gerador (`OLLAMA_REVIEW_MODEL`, padrão `phi4`), como revisor independente (LLM-como-juiz). `retrieve_chunks` usa embedding local (`services/embedding_service.py`, modelo `bge-m3`) e um Qdrant embutido/local (`services/rag_service.py`, sem servidor externo). `read_jira_issue`, `update_jira_issue`, `create_jira_epic`, `update_jira_epic` e `create_jira_story` usam a API REST do Jira Cloud (`services/jira_service.py`) — todas exceto `read_jira_issue` só são chamadas após aceitação humana explícita no CLI (`run.py`), nunca automaticamente. `read_confluence_page`, `create_confluence_page` e `update_confluence_page` usam a API REST do Confluence Cloud (`services/confluence_service.py`), reaproveitando as mesmas credenciais do Jira (mesma conta Atlassian) — as duas últimas só são chamadas após aceitação humana explícita (`update_confluence_page` ainda não está conectada a nenhum fluxo do CLI — ver sua entrada abaixo).
+> `extract_requirements`, `extract_prd_context`, `identify_epic_groups`, `identify_actor`, `identify_goal`, `identify_business_rules`, `identify_dependencies`, `generate_story`, `generate_clarifying_questions`, `refine_story`, `generate_epic_metadata`, `generate_epic_clarifying_questions`, `refine_epic_metadata`, `generate_prd`, `generate_prd_clarifying_questions` e `refine_prd` usam um LLM local via Ollama (`../../src/aqua_qe_product_owner/services/llm_service.py`, modelo configurável por `OLLAMA_MODEL`, padrão `mistral`). `validate_story`, `validate_epic`, `validate_prd`, `format_prd_markdown` e `diff_story_versions`/`diff_epic_versions`/`validate_traceability` são Python puro, sem LLM (ver `evaluation.md`). `review_story`, `review_epic` e `review_prd` usam um segundo LLM, diferente do gerador (`OLLAMA_REVIEW_MODEL`, padrão `phi4`), como revisor independente (LLM-como-juiz). `retrieve_chunks` usa embedding local (`services/embedding_service.py`, modelo `bge-m3`) e um Qdrant embutido/local (`services/rag_service.py`, sem servidor externo). `read_jira_issue`, `update_jira_issue`, `create_jira_epic`, `update_jira_epic` e `create_jira_story` usam a API REST do Jira Cloud (`services/jira_service.py`) — todas exceto `read_jira_issue` só são chamadas após aceitação humana explícita no CLI (`run.py`), nunca automaticamente. `read_confluence_page`, `create_confluence_page` e `update_confluence_page` usam a API REST do Confluence Cloud (`services/confluence_service.py`), reaproveitando as mesmas credenciais do Jira (mesma conta Atlassian) — as duas últimas só são chamadas após aceitação humana explícita (`update_confluence_page` ainda não está conectada a nenhum fluxo do CLI — ver sua entrada abaixo).
 
 ## read_text_file
 
@@ -103,14 +103,23 @@
 - **Erros esperados**: nenhuma regra identificável no texto (retorna lista vazia); resposta do LLM não é JSON válido (`ValueError`).
 - **Dependências**: nenhuma outra skill (opera sobre o texto completo de entrada); ver `../../knowledge/templates/business_rule.md`.
 
+## identify_dependencies
+
+- **Descrição**: identifica dependências — outras histórias, sistemas ou decisões — mencionadas implícita ou explicitamente no texto. Fecha o gap entre o campo `UserStory.dependencies` (já declarado no schema, ver `output_schema.md`) e a implementação: antes desta skill, o campo nunca era preenchido por nenhuma skill.
+- **Entrada**: `texto: str`.
+- **Saída**: `list[str]` — dependências identificadas; lista vazia quando nenhuma é identificável no texto (mesmo tipo já usado por `PRDContext.dependencies` em `extract_prd_context`, sem `source_reference` individual por item).
+- **Efeitos colaterais**: chamada ao LLM local (`llm_service`).
+- **Erros esperados**: nenhuma dependência identificável no texto (retorna lista vazia); resposta do LLM não é JSON válido (`ValueError`).
+- **Dependências**: nenhuma outra skill (opera sobre o texto completo de entrada, mesmo padrão de `identify_business_rules`); ver `../../knowledge/templates/user_story.md`.
+
 ## generate_story
 
 - **Descrição**: gera uma User Story a partir do ator, objetivo e contexto informados.
-- **Entrada**: `ator: str`, `objetivo: str`, `contexto: dict` (chaves usadas: `business_rules: list[BusinessRule]`, `texto_fonte: str`, `id: str` opcional).
+- **Entrada**: `ator: str`, `objetivo: str`, `contexto: dict` (chaves usadas: `business_rules: list[BusinessRule]`, `dependencies: list[str]`, `texto_fonte: str`, `id: str` opcional).
 - **Saída**: `UserStory` — sempre criada com `status = PENDING_CLARIFICATION`; o status final é decidido pelo workflow após `validate_story` (ver `../../knowledge/templates/user_story.md`).
 - **Efeitos colaterais**: chamada ao LLM local (`llm_service`).
 - **Erros esperados**: resposta do LLM não é JSON válido (`ValueError`).
-- **Dependências**: consome as saídas de `identify_business_rules` e, opcionalmente, `retrieve_chunks`; `ator`/`objetivo` vêm de `identify_actor`/`identify_goal`.
+- **Dependências**: consome as saídas de `identify_business_rules` e `identify_dependencies` e, opcionalmente, `retrieve_chunks`; `ator`/`objetivo` vêm de `identify_actor`/`identify_goal`.
 
 ## validate_story
 

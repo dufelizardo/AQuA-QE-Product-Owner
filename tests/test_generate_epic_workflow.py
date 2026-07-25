@@ -52,6 +52,7 @@ def test_items_identificaveis_viram_stories(monkeypatch):
     monkeypatch.setattr(workflow_module, "identify_actor", lambda texto: "cliente")
     monkeypatch.setattr(workflow_module, "identify_goal", lambda texto: "fazer algo")
     monkeypatch.setattr(workflow_module, "identify_business_rules", lambda texto: [])
+    monkeypatch.setattr(workflow_module, "identify_dependencies", lambda texto: [])
     monkeypatch.setattr(
         workflow_module, "generate_epic_metadata", lambda texto, requisitos: _METADADOS_PADRAO
     )
@@ -107,6 +108,7 @@ def test_itens_mistos_nao_bloqueiam_o_lote(monkeypatch):
     monkeypatch.setattr(workflow_module, "identify_actor", fake_identify_actor)
     monkeypatch.setattr(workflow_module, "identify_goal", fake_identify_goal)
     monkeypatch.setattr(workflow_module, "identify_business_rules", lambda texto: [])
+    monkeypatch.setattr(workflow_module, "identify_dependencies", lambda texto: [])
     monkeypatch.setattr(
         workflow_module, "generate_epic_metadata", lambda texto, requisitos: _METADADOS_PADRAO
     )
@@ -212,6 +214,7 @@ def test_generate_epic_stories_divide_o_epico_ja_definido_em_stories(monkeypatch
     monkeypatch.setattr(workflow_module, "identify_actor", lambda texto: "cliente")
     monkeypatch.setattr(workflow_module, "identify_goal", lambda texto: "fazer algo")
     monkeypatch.setattr(workflow_module, "identify_business_rules", lambda texto: [])
+    monkeypatch.setattr(workflow_module, "identify_dependencies", lambda texto: [])
     _mockar_finalize_epic_aprovado(monkeypatch)
 
     def fake_generate_story(ator, objetivo, contexto):

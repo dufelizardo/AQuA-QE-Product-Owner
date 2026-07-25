@@ -44,7 +44,7 @@ Entrada (.txt/Markdown/chat/Jira/Confluence)
 ```
 
 - `src/aqua_qe_product_owner/models/` — `UserStory`, `Epic` (com `UnresolvedItem`), `AcceptanceCriteria`, `BusinessRule`, `Actor`, `Requirement`, `PRDContext`, `PRDDraft`, `ChatMessage`, enum `StoryStatus`.
-- `src/aqua_qe_product_owner/skills/` — 38 funções de responsabilidade única (ver `docs/agent/skills.md`).
+- `src/aqua_qe_product_owner/skills/` — 39 funções de responsabilidade única (ver `docs/agent/skills.md`).
 - `src/aqua_qe_product_owner/workflow/` — orquestra a sequência de skills por caso de uso (`generate_prd`, `generate_user_story`, `generate_epic`, `generate_acceptance`, `refine_story`).
 - `src/aqua_qe_product_owner/orchestrator/product_owner.py` — ponto de entrada único, `handle_request(entrada, modo)`.
 - `src/aqua_qe_product_owner/services/` — integrações externas: `llm_service`/`embedding_service` (Ollama), `rag_service` (Qdrant embarcado), `jira_service`/`confluence_service` (REST API + httpx).

@@ -39,6 +39,7 @@ skills:
   - identify_actor
   - identify_goal
   - identify_business_rules
+  - identify_dependencies
   - generate_story
   - validate_story
   - review_story

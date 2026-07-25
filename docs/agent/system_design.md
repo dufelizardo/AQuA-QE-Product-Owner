@@ -11,7 +11,7 @@ Entrada (.txt/Markdown/chat/Jira)
    → read_text_file (se entrada for arquivo .txt/.md; chat e Jira entram como texto direto)
    → extract_requirements
    → retrieve_chunks (conhecimento de apoio: metodologia + domínio, quando existir)
-   → identify_actor / identify_goal / identify_business_rules
+   → identify_actor / identify_goal / identify_business_rules / identify_dependencies
    → generate_story
    → validate_story (checklist automático)
    → [ambíguo/incompleto?] → parar e solicitar esclarecimento ao usuário

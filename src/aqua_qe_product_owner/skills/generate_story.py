@@ -13,6 +13,7 @@ _SYSTEM = (
 def generate_story(ator: str, objetivo: str, contexto: dict) -> UserStory:
     """Gera uma User Story a partir do ator, objetivo e contexto informados."""
     regras: list[BusinessRule] = contexto.get("business_rules", [])
+    dependencias: list[str] = contexto.get("dependencies", [])
     fonte = contexto.get("texto_fonte", "")
 
     prompt = (
@@ -59,6 +60,7 @@ def generate_story(ator: str, objetivo: str, contexto: dict) -> UserStory:
         description=dados.get("descricao", ""),
         acceptance_criteria=criterios,
         business_rules=regras,
+        dependencies=dependencias,
         source_reference=fonte,
         status=StoryStatus.PENDING_CLARIFICATION,
     )

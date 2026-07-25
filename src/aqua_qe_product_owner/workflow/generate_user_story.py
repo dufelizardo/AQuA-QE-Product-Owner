@@ -3,6 +3,7 @@ from ..skills.extract_requirements import extract_requirements
 from ..skills.generate_story import generate_story
 from ..skills.identify_actor import identify_actor
 from ..skills.identify_business_rules import identify_business_rules
+from ..skills.identify_dependencies import identify_dependencies
 from ..skills.identify_goal import identify_goal
 from ..skills.review_story import review_story
 from ..skills.validate_story import validate_story
@@ -52,10 +53,12 @@ def generate_user_story(texto: str) -> UserStory:
 
     requisitos = extract_requirements(texto)
     regras = identify_business_rules(texto)
+    dependencias = identify_dependencies(texto)
 
     contexto = {
         "requirements": requisitos,
         "business_rules": regras,
+        "dependencies": dependencias,
         "texto_fonte": texto,
     }
     story = generate_story(ator, objetivo, contexto)

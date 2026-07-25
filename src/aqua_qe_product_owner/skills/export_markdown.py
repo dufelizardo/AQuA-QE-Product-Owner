@@ -41,6 +41,11 @@ def export_markdown(story: UserStory, caminho: str) -> None:
         linhas += [f"- {suposicao}" for suposicao in story.assumptions]
         linhas.append("")
 
+    if story.dependencies:
+        linhas += ["## Dependências", ""]
+        linhas += [f"- {dependencia}" for dependencia in story.dependencies]
+        linhas.append("")
+
     if story.review_notes:
         linhas += ["## Observações da Revisão", ""]
         linhas += [f"- {nota}" for nota in story.review_notes]
