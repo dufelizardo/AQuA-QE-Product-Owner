@@ -31,6 +31,7 @@ from aqua_qe_product_owner.skills.generate_epic_clarifying_questions import (  #
 )
 from aqua_qe_product_owner.skills.parse_chat_transcript import parse_chat_transcript  # noqa: E402
 from aqua_qe_product_owner.skills.parse_epic_markdown import parse_epic_markdown  # noqa: E402
+from aqua_qe_product_owner.skills.parse_story_markdown import parse_story_markdown  # noqa: E402
 from aqua_qe_product_owner.skills.read_confluence_page import read_confluence_page  # noqa: E402
 from aqua_qe_product_owner.skills.read_jira_issue import read_jira_issue  # noqa: E402
 from aqua_qe_product_owner.skills.read_text_file import read_text_file  # noqa: E402
@@ -44,6 +45,7 @@ from aqua_qe_product_owner.workflow.generate_epic import (  # noqa: E402
     load_epic_shape,
     refine_epic_shape,
 )
+from aqua_qe_product_owner.workflow.generate_user_story import finalize_story  # noqa: E402
 from aqua_qe_product_owner.workflow.refine_story import refine_user_story  # noqa: E402
 
 
@@ -158,9 +160,17 @@ def _processar_aceite(
 
 
 def _rodar_unitario(
-    texto: str, saida: str | None, jira_key: str | None, refinar: bool, priorizar: bool = False
+    texto: str,
+    saida: str | None,
+    jira_key: str | None,
+    refinar: bool,
+    priorizar: bool = False,
+    story_existente: str | None = None,
 ) -> None:
-    story = handle_request(texto, modo="unitario")
+    if story_existente:
+        story = finalize_story(parse_story_markdown(read_text_file(story_existente)))
+    else:
+        story = handle_request(texto, modo="unitario")
     _imprimir_story(story)
 
     original = copy.deepcopy(story)
@@ -477,6 +487,16 @@ def main() -> None:
             "--modo lote."
         ),
     )
+    entrada.add_argument(
+        "--story-existente",
+        dest="story_existente",
+        help=(
+            "Caminho de uma User Story .md já existente (mesmo formato de "
+            "export_markdown) para carregar e continuar dali — refinar de "
+            "novo ou só aceitar, em vez de gerar uma story nova. Só válido "
+            "com --modo unitario."
+        ),
+    )
     parser.add_argument(
         "--saida",
         help=(
@@ -527,10 +547,19 @@ def main() -> None:
         parser.error("--saida-rtm só é válido com --modo lote.")
     if args.epic_existente and args.modo != "lote":
         parser.error("--epic-existente só é válido com --modo lote.")
+    if args.story_existente and args.modo != "unitario":
+        parser.error("--story-existente só é válido com --modo unitario.")
 
     if args.modo == "unitario":
-        texto = _ler_entrada(args)
-        _rodar_unitario(texto, args.saida, args.jira, args.refinar, priorizar=args.priorizar)
+        texto = "" if args.story_existente else _ler_entrada(args)
+        _rodar_unitario(
+            texto,
+            args.saida,
+            args.jira,
+            args.refinar,
+            priorizar=args.priorizar,
+            story_existente=args.story_existente,
+        )
     else:
         texto = "" if args.epic_existente else _ler_entrada(args)
         _rodar_lote(

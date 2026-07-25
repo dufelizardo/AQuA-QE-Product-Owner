@@ -48,6 +48,7 @@ skills:
   - generate_traceability_matrix
   - format_epic_markdown
   - parse_epic_markdown
+  - parse_story_markdown
   - export_markdown
   - update_jira_issue
   - create_jira_epic

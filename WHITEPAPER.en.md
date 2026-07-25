@@ -86,14 +86,14 @@ Full input (.txt/Markdown/Confluence/Jira)
 Code layers (`src/aqua_qe_product_owner/`):
 
 - **`models/`** — data structures: `UserStory`, `Epic` (with `UnresolvedItem`), `AcceptanceCriteria`, `BusinessRule`, `Actor`, `Requirement`, `PRDContext`, and the `StoryStatus` enum (`draft_validated` / `pending_clarification` / `accepted`).
-- **`skills/`** — 34 functions, each with a single side effect and a single responsibility (see section 5).
+- **`skills/`** — 35 functions, each with a single side effect and a single responsibility (see section 5).
 - **`workflow/`** — orchestration of the skill sequence per use case: `generate_user_story.py` (`finalize_story`), `generate_epic.py` (`generate_epic_shape` → defines the Epic; `generate_epic_stories` → splits it into User Stories and finalizes it; `generate_epic` → convenience wrapper chaining both, with no human checkpoint), `generate_acceptance.py`, `refine_story.py`.
 - **`orchestrator/product_owner.py`** — single entry point (`handle_request(entrada, modo)`), decides between `"unitario"` (single) and `"lote"` (batch) mode.
 - **`services/`** — external integrations, introduced incrementally, one per real consumer: `llm_service` (Ollama), `embedding_service` (Ollama), `rag_service` (embedded Qdrant), `jira_service` and `confluence_service` (REST API + httpx).
 
 There is deliberately **no** `Feature` layer between Epic and User Story in the code (it only exists as a template in `knowledge/templates/feature.md`). The evaluation recorded in the project concluded that this layer has real value, but a disproportionate cost for the volume of PRDs tested so far — it's deferred until a PRD large enough justifies the grouping, instead of being built speculatively.
 
-## 5. The 34 skills
+## 5. The 35 skills
 
 Skills with no LLM (pure Python, deterministic):
 
@@ -102,6 +102,7 @@ Skills with no LLM (pure Python, deterministic):
 - `validate_traceability` — duplication, missing business value, orphan requirements.
 - `generate_traceability_matrix` — formats the Epic's Traceability Matrix (requirement → story → acceptance criteria → status), reusing `validate_traceability`, exportable via `--saida-rtm`.
 - `format_epic_markdown`/`parse_epic_markdown` — export/reconstruct the Epic's *shape* stage (title/objective/scope/value/criteria/requirements, no stories) as Markdown, an invertible pair that powers `--epic-existente`.
+- `parse_story_markdown` — reconstructs a `UserStory` from `export_markdown`'s output (already the canonical exporter), powering `--story-existente`.
 - `parse_chat_transcript`/`format_chat_transcript` — recognize and normalize multi-speaker chat transcripts on the `--texto` input, leaving plain text with no identifiable speaker unchanged.
 
 Skills using the generator LLM (`OLLAMA_MODEL`, default `mistral`):
@@ -147,6 +148,7 @@ Importantly, this cycle isn't just an approval gate. The human's answer to each 
 - **`--priorizar`** (single/batch modes) — after each story is accepted, asks for its priority (High/Medium/Low), always from the human/PO, never suggested by the agent: `dor.md`/`scrum_guide.md` assign backlog ordering to the PO. `estimate` stays permanently out of scope for the opposite reason — it's the team, via Planning Poker, who estimates (`dor.md`), not the PO alone.
 - **`--saida-rtm`** (batch mode) — exports the Epic's Traceability Matrix (`generate_traceability_matrix`, `RTM.md` inside the `--saida` folder), covering PRD-requirement → Epic → Story → Acceptance Criteria (the Task/Code/Tests/Release layers don't exist in this agent).
 - **`--epic-existente`** (batch mode) — loads an already-exported Epic `.md` (`parse_epic_markdown`) instead of generating a new one from a PRD, going straight into the same reception menu (refine again or generate the User Stories). Whenever `--saida` is set, the Epic itself is now also exported as `<EPIC-ID>.md` (`format_epic_markdown`) — previously only its Stories were.
+- **`--story-existente`** (single-story mode) — same idea for User Story: loads an already-exported story `.md` (`parse_story_markdown`) instead of generating a new one, reusing `finalize_story` (no new workflow) — goes straight into the normal refine/accept cycle.
 
 ## 8. Real integrations
 

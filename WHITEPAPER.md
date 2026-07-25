@@ -86,14 +86,14 @@ Entrada completa (.txt/Markdown/Confluence/Jira)
 Camadas do código (`src/aqua_qe_product_owner/`):
 
 - **`models/`** — estruturas de dados: `UserStory`, `Epic` (com `UnresolvedItem`), `AcceptanceCriteria`, `BusinessRule`, `Actor`, `Requirement`, `PRDContext`, e o enum `StoryStatus` (`draft_validated` / `pending_clarification` / `accepted`).
-- **`skills/`** — 34 funções, cada uma com um único efeito colateral e uma única responsabilidade (ver seção 5).
+- **`skills/`** — 35 funções, cada uma com um único efeito colateral e uma única responsabilidade (ver seção 5).
 - **`workflow/`** — orquestração da sequência de skills por caso de uso: `generate_user_story.py` (`finalize_story`), `generate_epic.py` (`generate_epic_shape` → define o Épico; `generate_epic_stories` → divide em User Stories e finaliza; `generate_epic` → wrapper de conveniência que encadeia as duas, sem checkpoint humano), `generate_acceptance.py`, `refine_story.py`.
 - **`orchestrator/product_owner.py`** — ponto de entrada único (`handle_request(entrada, modo)`), decide entre modo `"unitario"` e `"lote"`.
 - **`services/`** — integrações externas, introduzidas incrementalmente, uma por consumidor real: `llm_service` (Ollama), `embedding_service` (Ollama), `rag_service` (Qdrant embarcado), `jira_service` e `confluence_service` (REST API + httpx).
 
 Deliberadamente **não existe** uma camada de `Feature` entre Épico e User Story no código (só como template em `knowledge/templates/feature.md`). A avaliação registrada no projeto concluiu que essa camada tem valor real, mas custo desproporcional para o volume de PRDs testados até agora — fica para quando um PRD grande o suficiente justificar o agrupamento, em vez de ser construída especulativamente.
 
-## 5. As 34 skills
+## 5. As 35 skills
 
 Skills sem LLM (Python puro, determinísticas):
 
@@ -102,6 +102,7 @@ Skills sem LLM (Python puro, determinísticas):
 - `validate_traceability` — duplicidade, ausência de valor de negócio, requisitos órfãos.
 - `generate_traceability_matrix` — formata a Matriz de Rastreabilidade do Épico (requisito → story → critérios de aceitação → status) reaproveitando `validate_traceability`, exportável via `--saida-rtm`.
 - `format_epic_markdown`/`parse_epic_markdown` — exportam/reconstroem o estágio *shape* do Épico (título/objetivo/escopo/valor/critérios/requisitos, sem stories) em Markdown, par invertível que habilita `--epic-existente`.
+- `parse_story_markdown` — reconstrói uma `UserStory` a partir do Markdown de `export_markdown` (que já era o exportador canônico), habilitando `--story-existente`.
 - `parse_chat_transcript`/`format_chat_transcript` — reconhecem e normalizam transcrições de chat multi-remetente na entrada `--texto`, sem alterar texto corrido sem remetente identificável.
 
 Skills com LLM gerador (`OLLAMA_MODEL`, padrão `mistral`):
@@ -147,6 +148,7 @@ Importante: esse ciclo não é só um portão de aprovação. A resposta humana 
 - **`--priorizar`** (modos unitário/lote) — após o aceite de cada história, pergunta a prioridade (Alta/Média/Baixa) sempre ao humano/PO, nunca sugerida pelo agente: `dor.md`/`scrum_guide.md` atribuem a ordenação do backlog ao PO. `estimate` fica permanentemente fora de escopo pelo motivo inverso — é o time, via Planning Poker, quem estima (`dor.md`), não o PO sozinho.
 - **`--saida-rtm`** (modo lote) — exporta a Matriz de Rastreabilidade do Épico (`generate_traceability_matrix`, `RTM.md` dentro da pasta de `--saida`), cobrindo PRD-requisito → Épico → Story → Critério de Aceitação (as camadas Task/Código/Testes/Release não existem neste agente).
 - **`--epic-existente`** (modo lote) — carrega um Épico `.md` já exportado (`parse_epic_markdown`) em vez de gerar um novo a partir de um PRD, entrando direto no mesmo menu de recepção (refinar de novo ou gerar as User Stories). Sempre que `--saida` é informado, o próprio Épico também passa a ser exportado como `<EPIC-ID>.md` (`format_epic_markdown`) — antes só suas Stories eram.
+- **`--story-existente`** (modo unitário) — mesma ideia para User Story: carrega uma story `.md` já exportada (`parse_story_markdown`) em vez de gerar uma nova, reaproveitando `finalize_story` (sem novo workflow) — entra direto no ciclo normal de refinamento/aceite.
 
 ## 8. Integrações reais
 

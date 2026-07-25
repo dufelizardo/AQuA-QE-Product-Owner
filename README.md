@@ -82,6 +82,9 @@ uv run python run.py --modo lote --arquivo prd.txt --saida epic_output/ --priori
 
 # Load an already-exported Epic (<EPIC-ID>.md) instead of generating one from a PRD
 uv run python run.py --modo lote --epic-existente epic_output/EPIC-001/EPIC-001.md --saida epic_output/
+
+# Load an already-exported User Story instead of generating a new one
+uv run python run.py --modo unitario --story-existente story.md --saida story.md --refinar
 ```
 
 `--saida` is optional in both modes (without it, the result is only printed to the terminal). To use `--jira`, fill in `JIRA_BASE_URL`, `JIRA_EMAIL` and `JIRA_API_TOKEN` in `.env` (the token is generated at `id.atlassian.com/manage-profile/security/api-tokens`).
@@ -98,11 +101,13 @@ Batch mode (`--modo lote`) stops right after defining each Epic (title, objectiv
 
 `--epic-existente <file>` (batch mode only) loads an already-exported Epic (`<EPIC-ID>.md`, the shape stage: title/objective/scope/value/acceptance criteria/requirements, no stories yet) instead of generating a new one from a PRD — goes straight into the same reception menu (refine again or generate the User Stories now). Requirement/criterion IDs are regenerated sequentially on load, never preserved from the file. Whenever `--saida` is set, the Epic itself is now also exported as `<EPIC-ID>.md` (previously only its Stories were), which is what makes this round trip possible.
 
+`--story-existente <file>` (single-story mode only) loads an already-exported User Story (`export_markdown` was already the canonical exporter — only the inverse parser was missing) instead of generating a new one — goes straight into the same refine/accept cycle. `status`/review notes aren't restored from the file (re-decided by `finalize_story`); acceptance criterion IDs are regenerated sequentially.
+
 ## Status
 
 `docs/agent/`, `docs/standards/` and `knowledge/` (except `domain/`, `regulations/` and `examples/`, which depend on a real client/project) are filled in with real content.
 
-In `src/`, all 34 skills and the four workflows are implemented and work end to end with local models via Ollama:
+In `src/`, all 35 skills and the four workflows are implemented and work end to end with local models via Ollama:
 
 - **Single-story mode** (`workflow/generate_user_story.py`) — `read_text_file` → `extract_requirements` → `identify_actor`/`identify_goal`/`identify_business_rules` → `generate_story` (LLM `mistral`) → `validate_story` (pure Python checklist) → `review_story` (reviewer LLM `phi4`, independent from the generator) → final status. For `chat` input specifically, `parse_chat_transcript`/`format_chat_transcript` (pure Python, no LLM) normalize a multi-speaker transcript (`"PO: ...\nDev: ..."`) into `"Speaker: message"` paragraphs before any of this runs; plain-text input with no identifiable speaker passes through unchanged.
 - **Batch mode** (`workflow/generate_epic.py`) — in two phases: `generate_epics_shape` extracts the requirements, extracts the PRD's non-functional context (`extract_prd_context` — vision, non-functional requirements, constraints, success criteria, risks, dependencies, kept in `epic.prd_context`), groups the requirements by thematic coherence (`identify_epic_groups` — a cohesive PRD stays a single group; a PRD covering distinct fronts can split into several, with a safe single-group fallback if the LLM's grouping is inconsistent), and defines each candidate Epic's title, objective, scope, value and high-level acceptance criteria from the source text alone (no story generated yet), then `validate_epic` runs the automatic checklist for each — this is the point where `run.py --modo lote` presents, per Epic individually, a reception menu (generate the stories now / refine the Epic / don't continue with this Epic), before paying the cost of generating any story. Choosing to refine runs `generate_epic_clarifying_questions` → human answer → `refine_epic_metadata` → `validate_epic`/`review_epic`, repeated until approved or the user gives up (`review_epic` only runs at this point for an Epic the user actually chooses to refine, not for every Epic printed). Only for the confirmed Epics does `generate_epics_stories` apply the single-story pipeline to each extracted requirement, per Epic (ambiguous items become `unresolved_items` without blocking the rest of the batch), then run `validate_traceability` (duplicated stories, stories with no business value, orphan requirements), `review_epic` (reviewer LLM `phi4`, now able to judge coherence against the stories it groups), and `diff_epic_versions` (changelog, if the Epic was refined) for each Epic in turn.

@@ -42,7 +42,7 @@ Entrada (.txt/Markdown/chat/Jira)
 
 ## Modos de operação
 
-- **Unitário** — uma User Story por vez, com possibilidade de interação próxima do usuário a cada etapa.
+- **Unitário** — uma User Story por vez, com possibilidade de interação próxima do usuário a cada etapa. Caso especial (`--story-existente`): `parse_story_markdown` carrega uma User Story `.md` já exportada (`export_markdown`), preservando a redação original campo a campo, e `finalize_story` (já existente, mesmo usado por `generate_user_story`) decide o status — entra direto no ciclo normal de refinamento/aceite, sem nenhuma outra mudança de fluxo.
 - **Lote (Epic)** — processa a fonte inteira e gera um conjunto de User Stories de uma vez; ambíguidades pontuais em itens individuais não interrompem o lote inteiro, mas são sinalizadas item a item. Caso especial (`--epic-existente`): em vez de gerar o Épico a partir de um PRD, `parse_epic_markdown` carrega um Épico `.md` já exportado (`format_epic_markdown`), preservando a redação original campo a campo, e `load_epic_shape` aplica o checklist automático — entra direto no mesmo menu de recepção (gerar as stories agora / refinar / descartar), sem nenhuma outra mudança de fluxo.
 
 ## Restrições técnicas
