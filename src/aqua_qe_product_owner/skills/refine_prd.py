@@ -13,7 +13,10 @@ _SYSTEM = (
     "Você refina um PRD existente com base nas respostas que quem propôs a "
     "ideia deu às perguntas de esclarecimento levantadas por um revisor. "
     "Baseie-se apenas no PRD atual e nas respostas fornecidas; nunca invente "
-    "requisito, risco ou critério que não tenha sido informado neles. "
+    "requisito, risco ou critério que não tenha sido informado neles. Nunca "
+    "remova ou resuma um detalhe que já existe em um campo atual, a menos que "
+    "uma resposta contradiga esse detalhe especificamente — preserve o texto "
+    "existente nos campos que as respostas não abordam. "
     "Responda sempre em português, mesmo que o PRD atual contenha trechos em "
     "outro idioma."
 )
@@ -37,7 +40,10 @@ def refine_prd(draft: PRDDraft, respostas: list[dict]) -> PRDDraft:
         "Respostas às perguntas de esclarecimento:\n"
         + "\n".join(perguntas_respostas)
         + "\n\nReescreva os campos do PRD incorporando essas respostas, "
-        "resolvendo as lacunas apontadas.\n\n"
+        "resolvendo as lacunas apontadas. Campos (ou itens de lista) que não "
+        "têm relação com nenhuma das respostas acima devem manter o texto "
+        "atual, com o mesmo nível de detalhe — nunca simplifique um item para "
+        "menos palavras do que já tinha.\n\n"
         'Responda apenas em JSON: {"contexto_problema": "...", "objetivo": "...", '
         '"publico_alvo": "...", "escopo": "...", "fora_de_escopo": "...", '
         '"requisitos_funcionais": ["..."], "requisitos_nao_funcionais": ["..."], '
