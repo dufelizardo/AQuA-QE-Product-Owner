@@ -25,7 +25,7 @@ Este agente e o AQuA-QE Product Manager são **independentes** — repositórios
 - **`src/aqua_qe_product_owner/models/`** — estruturas de dados do agente (User Story, Epic, Acceptance Criteria, Business Rule, Actor, Requirement, PRDContext).
 - **`src/aqua_qe_product_owner/workflow/`** — orquestração da sequência de skills por caso de uso (gerar User Story unitária, gerar Epic em lote, gerar/complementar critérios de aceitação).
 - **`src/aqua_qe_product_owner/orchestrator/`** — ponto de entrada único que decide qual workflow executar.
-- **`src/aqua_qe_product_owner/services/`** — integrações externas: `llm_service` (Ollama local, geração), `embedding_service` (Ollama local, `bge-m3`), `rag_service` (Qdrant embutido/local, sem servidor) e `jira_service` (API REST do Jira Cloud).
+- **`src/aqua_qe_product_owner/services/`** — integrações externas: `llm_service` (Ollama por padrão, geração/revisão; piloto opcional de provedor em nuvem via toggle `LLM_PROVIDER=nvidia|cerebras|google` — ver Configuração abaixo), `embedding_service` (Ollama local, `bge-m3`, sem toggle), `rag_service` (Qdrant embutido/local, sem servidor) e `jira_service` (API REST do Jira Cloud).
 
 ## Configuração
 
@@ -48,6 +48,7 @@ Este é um repositório independente (não faz parte de nenhum monorepo) — o `
    ```bash
    cp .env.example .env
    ```
+   Opcional: para pilotar um provedor em nuvem em vez de Ollama local para geração/revisão, defina `LLM_PROVIDER` como `nvidia`, `cerebras` ou `google` no `.env`, mais a `*_API_KEY` correspondente (defaults de modelo de cada um em `.env.example`). Dos três, **Google AI Studio** (`LLM_PROVIDER=google`) é o único validado ao vivo de ponta a ponta nos agentes irmãos, com conteúdo real; NVIDIA NIM se mostrou instável e Cerebras exigiu configuração de billing na conta. Não afeta embeddings (`bge-m3`, sempre Ollama). Deixar `LLM_PROVIDER` sem definir mantém o comportamento com Ollama descrito acima inalterado.
 5. Rode a suíte de testes (totalmente mockada, sem chamadas reais a Ollama/Jira/Confluence) para confirmar a configuração:
    ```bash
    uv run pytest

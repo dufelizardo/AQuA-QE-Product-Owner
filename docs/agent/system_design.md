@@ -49,6 +49,8 @@ Entrada (.txt/Markdown/chat/Jira)
 
 - Modelo(s) de LLM e limites de contexto/custo a definir na implementação (fora do escopo deste documento de design).
 - Uma camada `services/` (abstração sobre providers externos — LLM, embeddings, vector store, Jira) será introduzida incrementalmente, um serviço por vez, junto com a skill que primeiro precisar dele — não construída antecipadamente sem consumidor.
+- Dois LLMs locais via Ollama por padrão (`OLLAMA_MODEL` gerador, `OLLAMA_REVIEW_MODEL` revisor) — mesma convenção de PM/SA.
+- **Piloto de provedor alternativo via toggle** (`LLM_PROVIDER=ollama|nvidia|cerebras|google`, padrão `ollama`): `llm_service.py::generator_model()`/`reviewer_model()` resolvem o modelo certo conforme o provedor ativo; `complete`/`complete_json` mantêm assinatura inalterada. Portado dos agentes irmãos AQuA-QE Product Manager/Solution Architect, já validados ao vivo lá antes de chegar aqui — NVIDIA NIM (`deepseek-ai/deepseek-v4-pro` gerador, `meta/llama-3.3-70b-instruct` revisor, mas instável em testes ao vivo: 503 de capacidade, 404 de entitlement), Cerebras Inference (`gpt-oss-120b` gerador, `zai-glm-4.7` revisor, rápido mas testado com erro 402 de billing/quota pendente) e Google AI Studio (`gemini-3.1-flash-lite` gerador, `gemini-2.5-flash-lite` revisor — único provedor validado ao vivo de ponta a ponta com sucesso nos agentes irmãos, adotado aqui como default direto, pulando o `gemini-3.5-flash` inicial que esgotava a quota gratuita de 20 req/dia). Todos os três provedores em nuvem usam o SDK `openai` contra endpoint compatível com OpenAI. Não afeta embeddings — `embedding_service.py`/`bge-m3` continuam sempre Ollama.
 
 ## Observabilidade
 

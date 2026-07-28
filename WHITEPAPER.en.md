@@ -159,7 +159,8 @@ All **write** operations require explicit human acceptance before firing — the
 
 ## 9. Technical stack
 
-- **Local LLM via Ollama** — `mistral` for generation, `phi4` as an independent reviewer, `bge-m3` for embeddings (1024 dimensions, strong performance in Portuguese). A deliberate choice of local models over cloud APIs, configurable via `OLLAMA_MODEL`/`OLLAMA_REVIEW_MODEL`/`OLLAMA_EMBEDDING_MODEL`/`OLLAMA_BASE_URL`.
+- **Local LLM via Ollama (default)** — `mistral` for generation, `phi4` as an independent reviewer, `bge-m3` for embeddings (1024 dimensions, strong performance in Portuguese). A deliberate choice of local models over cloud APIs, configurable via `OLLAMA_MODEL`/`OLLAMA_REVIEW_MODEL`/`OLLAMA_EMBEDDING_MODEL`/`OLLAMA_BASE_URL`.
+- **Optional cloud provider pilot via toggle** (`LLM_PROVIDER=ollama|nvidia|cerebras|google`) — the same pilot already validated live in the sibling AQuA-QE Product Manager/Solution Architect agents, ported here. NVIDIA NIM (`build.nvidia.com`) was tested first but proved unstable live (capacity, entitlement, timeout errors); Cerebras Inference (`api.cerebras.ai`) responded fast but hit pending account billing (402); **Google AI Studio** (`generativelanguage.googleapis.com`, `gemini-3.1-flash-lite`/`gemini-2.5-flash-lite`) was the only one that completed real artifacts end-to-end successfully in the sibling agents, adopted here directly as the default. All preserve the two-independent-models principle (generator/reviewer). Embeddings (`bge-m3`) are unaffected — always Ollama, no toggle. Ollama remains the unchanged default when `LLM_PROVIDER` is unset.
 - **Embedded Qdrant** (`QdrantClient(path=...)`, no server) for RAG over `knowledge/methodology/`.
 - **`uv`** for dependency management — a standalone project (its own repository, outside the monorepo that originated it), with `httpx` and `python-dotenv` declared explicitly in `pyproject.toml`.
 - **Python 3.12+**, `src/` layout.

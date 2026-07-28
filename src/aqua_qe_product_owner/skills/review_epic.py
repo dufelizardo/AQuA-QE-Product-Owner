@@ -1,7 +1,5 @@
-import os
-
 from ..models import Epic
-from ..services.llm_service import complete_json
+from ..services.llm_service import complete_json, reviewer_model
 
 _SYSTEM_COM_STORIES = (
     "Você é um revisor crítico de Épicos, independente de quem os gerou. "
@@ -20,12 +18,9 @@ _SYSTEM_SEM_STORIES = (
     "ausência de User Stories como um problema — isso é esperado nesta fase."
 )
 
-_DEFAULT_REVIEW_MODEL = "phi4"
-
-
 def review_epic(epic: Epic) -> dict:
     """Revisa o Epic com um LLM diferente do gerador — coerência com as stories agrupadas quando já existem, ou só clareza interna (título/objetivo/escopo/valor/critérios) na fase de shape, antes de qualquer story existir."""
-    modelo = os.getenv("OLLAMA_REVIEW_MODEL", _DEFAULT_REVIEW_MODEL)
+    modelo = reviewer_model()
     criterios = [
         {"dado": c.given, "quando": c.when, "entao": c.then} for c in epic.acceptance_criteria
     ]

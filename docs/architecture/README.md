@@ -33,7 +33,7 @@ O diferencial do projeto: quando a revisão reprova, o agente gera perguntas obj
 
 ![Integrações externas](svg/05-integracoes-externas.svg)
 
-Ollama local (`mistral`/`phi4`/`bge-m3`), Qdrant embarcado, Jira Cloud e Confluence Cloud, e qual módulo de `services/` fala com cada um.
+Ollama local (`mistral`/`phi4`/`bge-m3`, padrão — `llm_service` também aceita um piloto opcional de provedor em nuvem via `LLM_PROVIDER=nvidia|cerebras|google`, ver `CLAUDE.md`/`system_design.md`; não afeta embeddings), Qdrant embarcado, Jira Cloud e Confluence Cloud, e qual módulo de `services/` fala com cada um.
 
 ## Mantendo `.drawio` e `.svg` sincronizados
 

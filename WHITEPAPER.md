@@ -159,7 +159,8 @@ Todas as operações de **escrita** exigem aceitação humana explícita antes d
 
 ## 9. Stack técnico
 
-- **LLM local via Ollama** — `mistral` para geração, `phi4` como revisor independente, `bge-m3` para embeddings (1024 dimensões, bom desempenho em português). Escolha deliberada por modelos locais em vez de APIs de nuvem, configurável via `OLLAMA_MODEL`/`OLLAMA_REVIEW_MODEL`/`OLLAMA_EMBEDDING_MODEL`/`OLLAMA_BASE_URL`.
+- **LLM local via Ollama (padrão)** — `mistral` para geração, `phi4` como revisor independente, `bge-m3` para embeddings (1024 dimensões, bom desempenho em português). Escolha deliberada por modelos locais em vez de APIs de nuvem, configurável via `OLLAMA_MODEL`/`OLLAMA_REVIEW_MODEL`/`OLLAMA_EMBEDDING_MODEL`/`OLLAMA_BASE_URL`.
+- **Piloto de provedor em nuvem via toggle** (`LLM_PROVIDER=ollama|nvidia|cerebras|google`) — mesmo piloto já validado ao vivo nos agentes irmãos AQuA-QE Product Manager/Solution Architect, portado aqui. NVIDIA NIM (`build.nvidia.com`) foi o primeiro testado, mas se mostrou instável ao vivo (capacidade, entitlement, timeout); Cerebras Inference (`api.cerebras.ai`) respondeu rápido mas exigiu billing pendente na conta (402); **Google AI Studio** (`generativelanguage.googleapis.com`, `gemini-3.1-flash-lite`/`gemini-2.5-flash-lite`) foi o único que completou artefatos reais de ponta a ponta com sucesso nos agentes irmãos, adotado aqui como default direto. Todos preservam o princípio de dois modelos independentes (gerador/revisor). Embeddings (`bge-m3`) não são afetados — sempre Ollama, sem toggle. Ollama continua o padrão inalterado quando `LLM_PROVIDER` não é definido.
 - **Qdrant embarcado** (`QdrantClient(path=...)`, sem servidor) para RAG sobre `knowledge/methodology/`.
 - **`uv`** para dependências — projeto standalone (repositório próprio, fora do monorepo que o originou), com `httpx` e `python-dotenv` declarados explicitamente em `pyproject.toml`.
 - **Python 3.12+**, `src/` layout.

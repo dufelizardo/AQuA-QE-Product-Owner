@@ -25,7 +25,7 @@ This agent and the AQuA-QE Product Manager are **independent** — separate repo
 - **`src/aqua_qe_product_owner/models/`** — the agent's data structures (User Story, Epic, Acceptance Criteria, Business Rule, Actor, Requirement, PRDContext).
 - **`src/aqua_qe_product_owner/workflow/`** — orchestration of the skill sequence per use case (generate a single User Story, generate a batch Epic, generate/complement acceptance criteria).
 - **`src/aqua_qe_product_owner/orchestrator/`** — single entry point that decides which workflow to run.
-- **`src/aqua_qe_product_owner/services/`** — external integrations: `llm_service` (local Ollama, generation), `embedding_service` (local Ollama, `bge-m3`), `rag_service` (embedded/local Qdrant, no server) and `jira_service` (Jira Cloud REST API).
+- **`src/aqua_qe_product_owner/services/`** — external integrations: `llm_service` (Ollama by default, generation/review; optional cloud provider pilot via `LLM_PROVIDER=nvidia|cerebras|google` toggle — see Setup below), `embedding_service` (local Ollama, `bge-m3`, no toggle), `rag_service` (embedded/local Qdrant, no server) and `jira_service` (Jira Cloud REST API).
 
 ## Setup
 
@@ -48,6 +48,7 @@ This is a standalone repository (not part of any monorepo) — `uv sync` here re
    ```bash
    cp .env.example .env
    ```
+   Optional: to pilot a cloud provider instead of local Ollama for generation/review, set `LLM_PROVIDER` to `nvidia`, `cerebras` or `google` in `.env`, plus the matching `*_API_KEY` (per-provider model defaults are in `.env.example`). Of the three, **Google AI Studio** (`LLM_PROVIDER=google`) is the only one validated live end to end in the sibling agents, on real content; NVIDIA NIM proved unstable and Cerebras required account billing setup. Does not affect embeddings (`bge-m3`, always Ollama). Leaving `LLM_PROVIDER` unset keeps the Ollama behavior described above unchanged.
 5. Run the test suite (fully mocked, no live Ollama/Jira/Confluence calls) to confirm the setup:
    ```bash
    uv run pytest
