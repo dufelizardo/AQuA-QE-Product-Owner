@@ -25,6 +25,8 @@ skills:
   - read_jira_issue
   - read_confluence_page
   - retrieve_chunks
+  - record_refinement_answer
+  - suggest_refinement_answer
   - extract_requirements
   - extract_prd_context
   - identify_epic_groups

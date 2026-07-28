@@ -93,7 +93,7 @@ Camadas do código (`src/aqua_qe_product_owner/`):
 
 Deliberadamente **não existe** uma camada de `Feature` entre Épico e User Story no código (só como template em `knowledge/templates/feature.md`). A avaliação registrada no projeto concluiu que essa camada tem valor real, mas custo desproporcional para o volume de PRDs testados até agora — fica para quando um PRD grande o suficiente justificar o agrupamento, em vez de ser construída especulativamente.
 
-## 5. As 35 skills
+## 5. As 37 skills
 
 Skills sem LLM (Python puro, determinísticas):
 
@@ -115,7 +115,8 @@ Skills com LLM revisor independente (`OLLAMA_REVIEW_MODEL`, padrão `phi4` — d
 
 Skills de embedding/RAG (Ollama `bge-m3` + Qdrant embarcado, sem servidor externo):
 
-- `retrieve_chunks` — indexa e busca em `knowledge/methodology/` sob demanda.
+- `retrieve_chunks` — indexa e busca em `knowledge/methodology/` sob demanda (collection `knowledge_methodology`).
+- `record_refinement_answer`/`suggest_refinement_answer` — memória institucional de respostas humanas de ciclos de refinamento (collection separada `refinement_answer_memory`): grava cada resposta dada num ciclo (Story ou Epic) e sugere — nunca aplica automaticamente — a mais parecida já dada antes, para uma pergunta semelhante num ciclo futuro do mesmo ou de outro projeto (ver seção 11).
 
 Skills de I/O externo:
 
@@ -180,7 +181,7 @@ Métricas de sucesso definidas no PRD: redução do tempo de refinamento, taxa d
 - **`UserStory.estimate`** — **permanentemente** fora de escopo, não uma questão de fase: `knowledge/methodology/dor.md` atribui a estimativa (Planning Poker, story points) ao time de desenvolvimento, não ao Product Owner sozinho — este agente não pode replicar uma cerimônia síncrona do time. `priority` já está implementado (`--priorizar`, seção 7), sempre decidido pelo humano/PO.
 - **Camada `Feature`** entre Épico e User Story — avaliada e adiada até um PRD grande o suficiente justificar o agrupamento (ver seção 4).
 - **Indexação de `knowledge/domain/`** — estrutura de pastas pronta (requisitos, regras de negócio, processos, telas, API, banco, glossário), vazia até haver um cliente/projeto real para popular.
-- **Memória de projeto/longo prazo** (`memory.md`) — distinta do RAG sobre `knowledge/methodology/`, ainda não implementada.
+- **Memória de projeto/longo prazo** (`memory.md`) — distinta do RAG sobre `knowledge/methodology/`. Uma frente já foi implementada: memória institucional de respostas de ciclos de refinamento (`record_refinement_answer`/`suggest_refinement_answer`, seção 5), via uma segunda collection Qdrant. As demais frentes (preferências de formato do PO humano, glossário consolidado entre sessões) continuam não implementadas.
 - **Resiliência a falhas de infraestrutura do Ollama local** — instabilidade observada em execuções longas com troca de modelo (gerador ↔ revisor); decisão consciente de reexecutar manualmente em vez de adicionar retry automático, até haver evidência de que o custo de complexidade compensa.
 
 ## 12. Como executar

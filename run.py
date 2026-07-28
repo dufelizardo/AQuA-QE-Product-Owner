@@ -35,6 +35,12 @@ from aqua_qe_product_owner.skills.parse_story_markdown import parse_story_markdo
 from aqua_qe_product_owner.skills.read_confluence_page import read_confluence_page  # noqa: E402
 from aqua_qe_product_owner.skills.read_jira_issue import read_jira_issue  # noqa: E402
 from aqua_qe_product_owner.skills.read_text_file import read_text_file  # noqa: E402
+from aqua_qe_product_owner.skills.record_refinement_answer import (  # noqa: E402
+    record_refinement_answer,
+)
+from aqua_qe_product_owner.skills.suggest_refinement_answer import (  # noqa: E402
+    suggest_refinement_answer,
+)
 from aqua_qe_product_owner.skills.update_jira_epic import update_jira_epic  # noqa: E402
 from aqua_qe_product_owner.skills.update_jira_issue import update_jira_issue  # noqa: E402
 from aqua_qe_product_owner.skills.validate_traceability import validate_traceability  # noqa: E402
@@ -101,8 +107,16 @@ def _ciclo_de_refinamento(story: UserStory) -> UserStory:
         print("\nO revisor apontou problemas. Responda para ajudar a refinar a história:")
         respostas = []
         for pergunta in perguntas:
+            sugestao = suggest_refinement_answer(pergunta)
+            if sugestao:
+                print(
+                    f"  \U0001F4A1 Resposta usada antes p/ pergunta parecida "
+                    f"(similaridade {sugestao['score']:.2f}): {sugestao['resposta']}"
+                )
             resposta = input(f"  {pergunta}\n  > ")
             respostas.append({"pergunta": pergunta, "resposta": resposta})
+            if resposta.strip():
+                record_refinement_answer(pergunta, resposta, tipo_artefato="story")
 
         story = refine_user_story(story, respostas)
         print("\n--- história refinada ---")
@@ -396,8 +410,16 @@ def _ciclo_de_refinamento_epic(epic: Epic) -> Epic:
         print("\nO revisor apontou problemas no Épico. Responda para ajudar a refinar:")
         respostas = []
         for pergunta in perguntas:
+            sugestao = suggest_refinement_answer(pergunta)
+            if sugestao:
+                print(
+                    f"  \U0001F4A1 Resposta usada antes p/ pergunta parecida "
+                    f"(similaridade {sugestao['score']:.2f}): {sugestao['resposta']}"
+                )
             resposta = input(f"  {pergunta}\n  > ")
             respostas.append({"pergunta": pergunta, "resposta": resposta})
+            if resposta.strip():
+                record_refinement_answer(pergunta, resposta, tipo_artefato="epic")
 
         epic = refine_epic_shape(epic, respostas)
         print("\n--- Épico refinado ---")

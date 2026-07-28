@@ -68,3 +68,53 @@ def search(consulta: str, k: int = 5) -> list[str]:
         collection_name=_COLLECTION, query=vetor, limit=k
     ).points
     return [ponto.payload["texto"] for ponto in resultados]
+
+
+_COLLECTION_REFINEMENT_MEMORY = "refinement_answer_memory"
+
+
+def record_refinement_answer(
+    pergunta: str, resposta: str, tipo_artefato: str, client: QdrantClient | None = None
+) -> None:
+    """Grava um par pergunta/resposta de um ciclo de refinamento real, para reaproveitamento
+    futuro como sugestão editável (nunca aplicada automaticamente) em ciclos de refinamento
+    posteriores — mesmos ou de outros artefatos/projetos."""
+    client = client or _client()
+    if not client.collection_exists(_COLLECTION_REFINEMENT_MEMORY):
+        client.create_collection(
+            collection_name=_COLLECTION_REFINEMENT_MEMORY,
+            vectors_config=VectorParams(size=_VECTOR_SIZE, distance=Distance.COSINE),
+        )
+    vetor = embed([pergunta])[0]
+    ponto = PointStruct(
+        id=str(uuid4()),
+        vector=vetor,
+        payload={"pergunta": pergunta, "resposta": resposta, "tipo_artefato": tipo_artefato},
+    )
+    client.upsert(collection_name=_COLLECTION_REFINEMENT_MEMORY, points=[ponto])
+
+
+def find_similar_refinement_answers(
+    pergunta: str, k: int = 1, client: QdrantClient | None = None
+) -> list[dict]:
+    """Busca as k respostas de refinamento mais parecidas com a pergunta atual (memória
+    institucional). Retorna lista vazia se a collection ainda não existir (nenhuma resposta
+    registrada até agora) — nunca cria a collection nem indexa nada a partir daqui, diferente
+    de `search`, que indexa `knowledge/methodology/` sob demanda (não há conteúdo estático para
+    indexar aqui, só o que já foi registrado por `record_refinement_answer`)."""
+    client = client or _client()
+    if not client.collection_exists(_COLLECTION_REFINEMENT_MEMORY):
+        return []
+    vetor = embed([pergunta])[0]
+    resultados = client.query_points(
+        collection_name=_COLLECTION_REFINEMENT_MEMORY, query=vetor, limit=k
+    ).points
+    return [
+        {
+            "pergunta": ponto.payload["pergunta"],
+            "resposta": ponto.payload["resposta"],
+            "tipo_artefato": ponto.payload["tipo_artefato"],
+            "score": ponto.score,
+        }
+        for ponto in resultados
+    ]
