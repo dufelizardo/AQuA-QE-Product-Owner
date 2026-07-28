@@ -1,8 +1,13 @@
 import html
 import os
+import re
 from html.parser import HTMLParser
 
 import httpx
+
+_NEGRITO_RE = re.compile(r"\*\*(.+?)\*\*")
+_ITEM_NUMERADO_RE = re.compile(r"^\d+\.\s+")
+_SEPARADOR_TABELA_RE = re.compile(r"^\|(?:[\s:-]+\|)+$")
 
 
 def _credenciais() -> tuple[str, str, str]:
@@ -46,41 +51,106 @@ def _storage_para_texto(storage_html: str) -> str:
     return parser.texto()
 
 
-def _texto_para_storage(texto: str) -> str:
-    """Converte Markdown simples (#/##/### e listas com "- ") no storage format (XHTML) do Confluence.
+def _inline(texto: str) -> str:
+    """Escapa o texto para HTML e converte **negrito** Markdown em <strong> (única marcação inline suportada)."""
+    return _NEGRITO_RE.sub(r"<strong>\1</strong>", html.escape(texto))
 
-    Usado para publicar o PRD (produzido por format_prd_markdown), que é
-    sempre Markdown — por isso "# "/"## "/"### " viram h1/h2/h3 e linhas
-    consecutivas com "- " viram uma lista; o restante vira parágrafo.
+
+def _celulas_tabela(linha: str) -> list[str]:
+    return [celula.strip() for celula in linha.strip().strip("|").split("|")]
+
+
+def _tabela_para_storage(linhas: list[str]) -> str:
+    """Converte linhas '| a | b |' (primeira linha = cabeçalho, separador já removido) numa tabela HTML."""
+    cabecalho, *corpo = linhas
+    linha_cabecalho = (
+        "<tr>" + "".join(f"<th>{_inline(c)}</th>" for c in _celulas_tabela(cabecalho)) + "</tr>"
+    )
+    linhas_corpo = [
+        "<tr>" + "".join(f"<td>{_inline(c)}</td>" for c in _celulas_tabela(linha)) + "</tr>"
+        for linha in corpo
+    ]
+    return "<table><tbody>" + linha_cabecalho + "".join(linhas_corpo) + "</tbody></table>"
+
+
+def _texto_para_storage(texto: str) -> str:
+    """Converte um subconjunto de Markdown (#/##/###, listas com "- "/"1. ", tabelas e **negrito**)
+    no storage format (XHTML) do Confluence.
+
+    Usado para publicar o PRD (produzido por format_prd_markdown), sempre Markdown. Cobre só
+    o que esse formatador efetivamente gera — não é um conversor Markdown genérico.
     """
     partes: list[str] = []
     itens_lista: list[str] = []
+    tipo_lista: str | None = None  # "ul" ou "ol"
+    linhas_tabela: list[str] = []
 
     def fechar_lista() -> None:
+        nonlocal tipo_lista
         if itens_lista:
-            partes.append("<ul>" + "".join(f"<li>{item}</li>" for item in itens_lista) + "</ul>")
+            tag = tipo_lista or "ul"
+            partes.append(f"<{tag}>" + "".join(f"<li>{item}</li>" for item in itens_lista) + f"</{tag}>")
             itens_lista.clear()
+        tipo_lista = None
 
-    for linha in texto.splitlines():
-        linha = linha.strip()
+    def fechar_tabela() -> None:
+        if linhas_tabela:
+            partes.append(_tabela_para_storage(list(linhas_tabela)))
+            linhas_tabela.clear()
+
+    linhas = [linha.strip() for linha in texto.splitlines()]
+    i = 0
+    while i < len(linhas):
+        linha = linhas[i]
         if not linha:
+            i += 1
             continue
+
+        if (
+            not linhas_tabela
+            and linha.startswith("|")
+            and i + 1 < len(linhas)
+            and _SEPARADOR_TABELA_RE.match(linhas[i + 1])
+        ):
+            fechar_lista()
+            linhas_tabela.append(linha)
+            i += 1
+            continue
+
+        if linhas_tabela:
+            if linha.startswith("|"):
+                if not _SEPARADOR_TABELA_RE.match(linha):
+                    linhas_tabela.append(linha)
+                i += 1
+                continue
+            fechar_tabela()
+
         if linha.startswith("### "):
             fechar_lista()
-            partes.append(f"<h3>{html.escape(linha[4:])}</h3>")
+            partes.append(f"<h3>{_inline(linha[4:])}</h3>")
         elif linha.startswith("## "):
             fechar_lista()
-            partes.append(f"<h2>{html.escape(linha[3:])}</h2>")
+            partes.append(f"<h2>{_inline(linha[3:])}</h2>")
         elif linha.startswith("# "):
             fechar_lista()
-            partes.append(f"<h1>{html.escape(linha[2:])}</h1>")
+            partes.append(f"<h1>{_inline(linha[2:])}</h1>")
         elif linha.startswith("- "):
-            itens_lista.append(html.escape(linha[2:]))
+            if tipo_lista == "ol":
+                fechar_lista()
+            tipo_lista = "ul"
+            itens_lista.append(_inline(linha[2:]))
+        elif _ITEM_NUMERADO_RE.match(linha):
+            if tipo_lista == "ul":
+                fechar_lista()
+            tipo_lista = "ol"
+            itens_lista.append(_inline(_ITEM_NUMERADO_RE.sub("", linha)))
         else:
             fechar_lista()
-            partes.append(f"<p>{html.escape(linha)}</p>")
+            partes.append(f"<p>{_inline(linha)}</p>")
+        i += 1
 
     fechar_lista()
+    fechar_tabela()
     return "".join(partes)
 
 
