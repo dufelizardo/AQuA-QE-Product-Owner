@@ -393,10 +393,13 @@ def _ciclo_de_refinamento_epic(epic: Epic) -> Epic:
     """Gera perguntas, pede respostas ao usuário, refina e reavalia até aprovar ou o usuário desistir.
 
     Diferente do PRD/Story, o Épico chega aqui só com o checklist automático
-    (validate_epic) aplicado — review_epic (e epic.review_notes) só roda
-    dentro de finalize_epic, chamado aqui sob demanda, na entrada deste
-    ciclo, para não pagar esse custo de LLM para todo Épico impresso na
-    recepção — só para aquele que o usuário escolheu de fato refinar.
+    (validate_epic) aplicado — review_epic só roda dentro de finalize_epic,
+    chamado aqui sob demanda, na entrada deste ciclo, para não pagar esse
+    custo de LLM para todo Épico impresso na recepção — só para aquele que
+    o usuário escolheu de fato refinar. epic.review_notes já pode vir
+    preenchido antes disso, se o checklist reprovou na recepção (validate_epic
+    em _montar_epic/load_epic_shape) — finalize_epic reaplica o checklist
+    aqui e reconcilia.
     """
     epic = finalize_epic(epic)
     print("\n--- revisão do Épico ---")

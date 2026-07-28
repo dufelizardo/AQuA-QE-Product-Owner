@@ -128,7 +128,7 @@ Full input/output/error detail for every skill is in `docs/agent/skills.md`.
 
 Most content-generation agents treat a "review rejected" signal as a cue for the same LLM to try again. This project treats it as a cue to **bring in a human with a specific question**:
 
-1. `review_story`/`review_epic` rejects and produces `review_notes` — concrete findings (e.g., "acceptance criterion doesn't cover error case X," "benefit isn't measurable").
+1. A User Story/Epic arrives rejected with `review_notes` populated one of two ways: `validate_story`/`validate_epic` rejects the automatic checklist and records the specific reasons (e.g., "no acceptance criterion identified") — without spending an LLM reviewer call; or, if the checklist passes, `review_story`/`review_epic` rejects with concrete findings (e.g., "acceptance criterion doesn't cover error case X," "benefit isn't measurable"). Either way, the user always sees the exact reason — never just a status with no explanation.
 2. `generate_clarifying_questions` turns each finding into an objective, actionable question.
 3. The CLI (`run.py --refinar`) presents the questions in the terminal; **a real human answers them** — not the same LLM self-correcting.
 4. `refine_story` rewrites `description`, `business_rules`, and `acceptance_criteria` using the answers as real context, not as a new blind attempt.

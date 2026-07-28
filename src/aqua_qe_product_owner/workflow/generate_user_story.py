@@ -11,8 +11,10 @@ from ..skills.validate_story import validate_story
 
 def finalize_story(story: UserStory) -> UserStory:
     """Aplica o checklist automático e a revisão por LLM, decidindo o status final da história."""
-    if not validate_story(story):
+    motivos_checklist = validate_story(story)
+    if motivos_checklist:
         story.status = StoryStatus.PENDING_CLARIFICATION
+        story.review_notes = motivos_checklist
         return story
 
     revisao = review_story(story)

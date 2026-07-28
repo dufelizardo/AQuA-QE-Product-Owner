@@ -141,11 +141,11 @@
 
 ## validate_story
 
-- **Descrição**: valida se a User Story atende aos critérios INVEST e ao checklist do agente.
+- **Descrição**: valida a User Story contra os critérios INVEST e o checklist do agente.
 - **Entrada**: `story: UserStory`.
-- **Saída**: `bool` — indica se a história passa no checklist automático (não decide aprovação humana, ver `guardrails.md`).
+- **Saída**: `list[str]` — motivos específicos de reprovação, acumulando todos (não só o primeiro); lista vazia = aprovado no checklist (não decide aprovação humana, ver `guardrails.md`). `finalize_story` grava esses motivos em `story.review_notes` quando o checklist reprova, para que o usuário sempre veja por que — inclusive antes de qualquer revisão por LLM rodar.
 - **Efeitos colaterais**: nenhum — checklist em Python puro, sem chamada a LLM (distinção de `evaluation.md`).
-- **Erros esperados**: nenhum (checagens sobre campos ausentes/vazios retornam `False`, não lançam exceção).
+- **Erros esperados**: nenhum (checagens sobre campos ausentes/vazios acumulam motivo, não lançam exceção).
 - **Dependências**: consome a saída de `generate_story`; critérios definidos em `../../knowledge/methodology/invest.md` e `../agent/validation_checklist.md`.
 
 ## review_story
@@ -206,7 +206,7 @@
 
 - **Descrição**: valida se o Epic tem título, objetivo, escopo, valor e ao menos um critério de aceitação completo (equivalente de `validate_story`, em nível de Épico).
 - **Entrada**: `epic: Epic`.
-- **Saída**: `bool` — indica se o Épico passa no checklist automático (não decide aceitação humana).
+- **Saída**: `list[str]` — motivos específicos de reprovação, acumulando todos (não só o primeiro); lista vazia = aprovado no checklist (não decide aceitação humana). `finalize_epic`/`_montar_epic`/`load_epic_shape` gravam esses motivos em `epic.review_notes` quando o checklist reprova, para que o usuário sempre veja por que — inclusive no menu de recepção do modo lote, antes de decidir refinar.
 - **Efeitos colaterais**: nenhum — Python puro, sem LLM.
 - **Erros esperados**: nenhum.
 - **Dependências**: consome a saída de `generate_epic_metadata`.

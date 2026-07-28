@@ -128,7 +128,7 @@ Detalhamento completo de entrada/saída/erros de cada skill em `docs/agent/skill
 
 A maior parte dos agentes de geração de conteúdo trata "revisão reprovada" como um sinal para o próprio LLM tentar de novo. Esse projeto trata isso como um sinal para **envolver um humano com uma pergunta específica**:
 
-1. `review_story`/`review_epic` reprova e produz `review_notes` — apontamentos concretos (ex.: "critério de aceitação não cobre o caso de erro X", "benefício não é mensurável").
+1. Uma User Story/Epic chega reprovado com `review_notes` preenchido de uma de duas formas: `validate_story`/`validate_epic` reprova o checklist automático e grava os motivos específicos (ex.: "nenhum critério de aceitação identificado") — sem gastar uma chamada de LLM revisor; ou, se o checklist passa, `review_story`/`review_epic` reprova com apontamentos concretos (ex.: "critério de aceitação não cobre o caso de erro X", "benefício não é mensurável"). Em ambos os casos, o usuário sempre vê o motivo exato — nunca só um status sem explicação.
 2. `generate_clarifying_questions` transforma cada apontamento em uma pergunta objetiva e acionável.
 3. O CLI (`run.py --refinar`) apresenta as perguntas no terminal; **um humano real responde** — não o mesmo LLM se autocorrigindo.
 4. `refine_story` reescreve `description`, `business_rules` e `acceptance_criteria` usando as respostas como contexto real, não como uma nova tentativa às cegas.

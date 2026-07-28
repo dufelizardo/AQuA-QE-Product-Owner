@@ -28,7 +28,7 @@
   "priority": "<Alta | Média | Baixa | vazio — preenchido via CLI (--priorizar), sempre decidido pelo humano/PO, nunca sugerido pelo agente>",
   "estimate": "<opcional — permanentemente fora de escopo: estimativa é uma cerimônia do time (Planning Poker), não do PO sozinho, ver knowledge/methodology/dor.md>",
   "dependencies": ["<preenchido por identify_dependencies, quando identificável na fonte — GR-1>"],
-  "review_notes": ["<apontamento do revisor (review_story), se houver>"]
+  "review_notes": ["<motivo de reprovação do checklist (validate_story) OU apontamento do revisor (review_story), se houver>"]
 }
 ```
 
@@ -59,7 +59,7 @@
         "dependencies": ["<opcional>"]
       },
       "status": "draft_validated | pending_clarification | accepted",
-      "review_notes": ["<apontamento do revisor (review_epic), se houver>"],
+      "review_notes": ["<motivo de reprovação do checklist (validate_epic) OU apontamento do revisor (review_epic), se houver>"],
       "stories": ["<lista de objetos User Story, schema acima>"],
       "unresolved_items": [
         {

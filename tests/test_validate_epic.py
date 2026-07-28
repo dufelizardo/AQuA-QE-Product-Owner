@@ -18,21 +18,39 @@ def _epic(**overrides) -> Epic:
 
 
 def test_valid_epic_passes():
-    assert validate_epic(_epic()) is True
+    assert validate_epic(_epic()) == []
+
+
+def test_missing_title_fails():
+    assert "título ausente" in validate_epic(_epic(title=""))
+
+
+def test_missing_objective_fails():
+    assert "objetivo ausente" in validate_epic(_epic(objective=""))
 
 
 def test_missing_scope_fails():
-    assert validate_epic(_epic(scope="")) is False
+    assert "escopo ausente" in validate_epic(_epic(scope=""))
 
 
 def test_missing_value_fails():
-    assert validate_epic(_epic(value="")) is False
+    assert "valor ausente" in validate_epic(_epic(value=""))
 
 
 def test_no_acceptance_criteria_fails():
-    assert validate_epic(_epic(acceptance_criteria=[])) is False
+    assert "nenhum critério de aceitação identificado" in validate_epic(
+        _epic(acceptance_criteria=[])
+    )
 
 
 def test_incomplete_acceptance_criteria_fails():
     incompleto = [AcceptanceCriteria(id="AC-001", scenario="c", given="g", when="", then="t")]
-    assert validate_epic(_epic(acceptance_criteria=incompleto)) is False
+    assert "critério de aceitação incompleto (Given/When/Then)" in validate_epic(
+        _epic(acceptance_criteria=incompleto)
+    )
+
+
+def test_multiplos_motivos_acumulam_em_vez_de_parar_no_primeiro():
+    motivos = validate_epic(_epic(title="", value=""))
+    assert "título ausente" in motivos
+    assert "valor ausente" in motivos

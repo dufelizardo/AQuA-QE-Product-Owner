@@ -118,3 +118,5 @@ def test_validate_story_failure_skips_review(monkeypatch):
 
     assert story.status == StoryStatus.PENDING_CLARIFICATION
     assert chamou_review["valor"] is False
+    assert "benefício ausente" in story.review_notes
+    assert "nenhum critério de aceitação identificado" in story.review_notes

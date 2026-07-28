@@ -16,8 +16,10 @@ from .generate_user_story import finalize_story
 
 def finalize_epic(epic: Epic) -> Epic:
     """Aplica o checklist automático e a revisão por LLM ao Epic, decidindo seu status final."""
-    if not validate_epic(epic):
+    motivos_checklist = validate_epic(epic)
+    if motivos_checklist:
         epic.status = StoryStatus.PENDING_CLARIFICATION
+        epic.review_notes = motivos_checklist
         return epic
 
     revisao = review_epic(epic)
@@ -52,9 +54,12 @@ def _montar_epic(epic_id: str, texto: str, requisitos: list[Requirement], prd_co
         requirements=requisitos,
         prd_context=prd_context,
     )
-    epic.status = (
-        StoryStatus.DRAFT_VALIDATED if validate_epic(epic) else StoryStatus.PENDING_CLARIFICATION
-    )
+    motivos_checklist = validate_epic(epic)
+    if motivos_checklist:
+        epic.status = StoryStatus.PENDING_CLARIFICATION
+        epic.review_notes = motivos_checklist
+    else:
+        epic.status = StoryStatus.DRAFT_VALIDATED
     return epic
 
 
@@ -85,9 +90,12 @@ def load_epic_shape(epic: Epic) -> Epic:
     — os campos (título/objetivo/escopo/valor/critérios/requisitos) já vêm
     prontos de uma fonte externa, não são gerados por LLM aqui.
     """
-    epic.status = (
-        StoryStatus.DRAFT_VALIDATED if validate_epic(epic) else StoryStatus.PENDING_CLARIFICATION
-    )
+    motivos_checklist = validate_epic(epic)
+    if motivos_checklist:
+        epic.status = StoryStatus.PENDING_CLARIFICATION
+        epic.review_notes = motivos_checklist
+    else:
+        epic.status = StoryStatus.DRAFT_VALIDATED
     return epic
 
 

@@ -17,7 +17,7 @@ def _fake_requirement(i: int) -> Requirement:
 
 
 def _mockar_finalize_epic_aprovado(monkeypatch):
-    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: True)
+    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: [])
     monkeypatch.setattr(
         workflow_module, "review_epic", lambda epic: {"aprovado": True, "problemas": []}
     )
@@ -136,7 +136,7 @@ def test_itens_mistos_nao_bloqueiam_o_lote(monkeypatch):
 
 
 def test_finalize_epic_marca_pending_clarification_quando_validate_falha(monkeypatch):
-    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: False)
+    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: ["motivo checklist"])
 
     from aqua_qe_product_owner.models import Epic
 
@@ -144,10 +144,11 @@ def test_finalize_epic_marca_pending_clarification_quando_validate_falha(monkeyp
     resultado = workflow_module.finalize_epic(epic)
 
     assert resultado.status == StoryStatus.PENDING_CLARIFICATION
+    assert resultado.review_notes == ["motivo checklist"]
 
 
 def test_finalize_epic_marca_pending_clarification_quando_review_reprova(monkeypatch):
-    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: True)
+    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: [])
     monkeypatch.setattr(
         workflow_module,
         "review_epic",
@@ -173,7 +174,7 @@ def test_generate_epic_shape_define_epico_sem_gerar_nenhuma_story(monkeypatch):
     monkeypatch.setattr(
         workflow_module, "generate_epic_metadata", lambda texto, requisitos: _METADADOS_PADRAO
     )
-    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: True)
+    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: [])
 
     epic = workflow_module.generate_epic_shape("fonte qualquer")
 
@@ -194,15 +195,16 @@ def test_generate_epic_shape_marca_pending_clarification_quando_validate_falha(m
     monkeypatch.setattr(
         workflow_module, "generate_epic_metadata", lambda texto, requisitos: _METADADOS_PADRAO
     )
-    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: False)
+    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: ["motivo checklist"])
 
     epic = workflow_module.generate_epic_shape("fonte qualquer")
 
     assert epic.status == StoryStatus.PENDING_CLARIFICATION
+    assert epic.review_notes == ["motivo checklist"]
 
 
 def test_load_epic_shape_marca_draft_validated_quando_validate_aprova(monkeypatch):
-    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: True)
+    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: [])
 
     epic = Epic(id="EPIC-001", title="t", objective="o", scope="e", value="v")
     resultado = workflow_module.load_epic_shape(epic)
@@ -211,12 +213,13 @@ def test_load_epic_shape_marca_draft_validated_quando_validate_aprova(monkeypatc
 
 
 def test_load_epic_shape_marca_pending_clarification_quando_validate_reprova(monkeypatch):
-    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: False)
+    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: ["motivo checklist"])
 
     epic = Epic(id="EPIC-001", title="", objective="", scope="", value="")
     resultado = workflow_module.load_epic_shape(epic)
 
     assert resultado.status == StoryStatus.PENDING_CLARIFICATION
+    assert resultado.review_notes == ["motivo checklist"]
 
 
 def test_generate_epic_stories_divide_o_epico_ja_definido_em_stories(monkeypatch):
@@ -271,7 +274,7 @@ def test_generate_epics_shape_produz_um_epico_quando_grupo_e_unico(monkeypatch):
     monkeypatch.setattr(
         workflow_module, "generate_epic_metadata", lambda texto, requisitos: _METADADOS_PADRAO
     )
-    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: True)
+    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: [])
 
     epics = workflow_module.generate_epics_shape("fonte qualquer")
 
@@ -291,7 +294,7 @@ def test_generate_epics_shape_produz_multiplos_epicos_com_ids_sequenciais(monkey
     monkeypatch.setattr(
         workflow_module, "generate_epic_metadata", lambda texto, requisitos: _METADADOS_PADRAO
     )
-    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: True)
+    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: [])
 
     epics = workflow_module.generate_epics_shape("fonte qualquer")
 
@@ -326,7 +329,7 @@ def test_refine_epic_shape_refina_e_finaliza(monkeypatch):
         return epic
 
     monkeypatch.setattr(workflow_module, "refine_epic_metadata", fake_refine_epic_metadata)
-    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: True)
+    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: [])
     monkeypatch.setattr(
         workflow_module, "review_epic", lambda epic: {"aprovado": True, "problemas": []}
     )
@@ -345,7 +348,7 @@ def test_refine_epic_shape_permanece_pending_clarification_quando_review_ainda_r
         return epic
 
     monkeypatch.setattr(workflow_module, "refine_epic_metadata", fake_refine_epic_metadata)
-    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: True)
+    monkeypatch.setattr(workflow_module, "validate_epic", lambda epic: [])
     monkeypatch.setattr(
         workflow_module,
         "review_epic",
