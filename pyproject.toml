@@ -7,7 +7,7 @@ dependencies = [
     # Exemplos:
     #
     # LLM Providers
-    "openai>=1.0",  # usado pelos provedores em nuvem (LLM_PROVIDER=nvidia|cerebras|google), API compatível com OpenAI
+    "openai>=1.0",  # usado pelos provedores em nuvem (LLM_PROVIDER=nvidia|cerebras|google|groq), API compatível com OpenAI
     # "anthropic>=0.50",
     # "google-genai>=1.0",
     # "groq>=0.11",

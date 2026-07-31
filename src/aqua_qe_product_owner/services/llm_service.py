@@ -38,6 +38,16 @@ _GOOGLE_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 # chaveado por modelo (ainda sem dados de tuning por modelo, diferente do NVIDIA).
 _GOOGLE_DEFAULT_PARAMS: dict = {"max_tokens": 8192}
 
+# Adicionado ao vivo processando o PRD real "Mais Saúde Pública" no PO — os 3 provedores
+# em nuvem anteriores (NVIDIA/Cerebras/Google) saturaram ou tiveram rate limit baixo demais
+# (15 ou 5 req/min no tier gratuito do Google) para gerar 5 stories em lote (~30 chamadas em
+# rajada). Groq confirmado pelo usuário com 30 req/min tanto no gerador quanto no revisor —
+# folga bem maior que qualquer tier gratuito do Google testado. gpt-oss-120b como revisor
+# (família diferente de llama, mesmo princípio de mitigar self-preference bias).
+_DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
+_DEFAULT_GROQ_REVIEW_MODEL = "openai/gpt-oss-120b"
+_GROQ_BASE_URL = "https://api.groq.com/openai/v1"
+
 # Parâmetros de sampling recomendados pela NVIDIA por modelo NIM (build.nvidia.com/playground)
 # — chaveados por nome do modelo, não por papel (gerador/revisor), para continuar corretos se
 # um dos dois for trocado via NVIDIA_MODEL/NVIDIA_REVIEW_MODEL. Modelo sem entrada aqui usa a
@@ -77,31 +87,39 @@ def _google_client() -> OpenAI:
     return OpenAI(base_url=_GOOGLE_BASE_URL, api_key=os.environ["GOOGLE_API_KEY"])
 
 
+def _groq_client() -> OpenAI:
+    return OpenAI(base_url=_GROQ_BASE_URL, api_key=os.environ["GROQ_API_KEY"])
+
+
 def generator_model() -> str:
-    """Resolve o modelo gerador conforme o provedor ativo (LLM_PROVIDER=ollama|nvidia|cerebras|google)."""
+    """Resolve o modelo gerador conforme o provedor ativo (LLM_PROVIDER=ollama|nvidia|cerebras|google|groq)."""
     if _provider() == "nvidia":
         return os.getenv("NVIDIA_MODEL", _DEFAULT_NVIDIA_MODEL)
     if _provider() == "cerebras":
         return os.getenv("CEREBRAS_MODEL", _DEFAULT_CEREBRAS_MODEL)
     if _provider() == "google":
         return os.getenv("GOOGLE_MODEL", _DEFAULT_GOOGLE_MODEL)
+    if _provider() == "groq":
+        return os.getenv("GROQ_MODEL", _DEFAULT_GROQ_MODEL)
     return os.getenv("OLLAMA_MODEL", _DEFAULT_MODEL)
 
 
 def reviewer_model() -> str:
-    """Resolve o modelo revisor conforme o provedor ativo (LLM_PROVIDER=ollama|nvidia|cerebras|google)."""
+    """Resolve o modelo revisor conforme o provedor ativo (LLM_PROVIDER=ollama|nvidia|cerebras|google|groq)."""
     if _provider() == "nvidia":
         return os.getenv("NVIDIA_REVIEW_MODEL", _DEFAULT_NVIDIA_REVIEW_MODEL)
     if _provider() == "cerebras":
         return os.getenv("CEREBRAS_REVIEW_MODEL", _DEFAULT_CEREBRAS_REVIEW_MODEL)
     if _provider() == "google":
         return os.getenv("GOOGLE_REVIEW_MODEL", _DEFAULT_GOOGLE_REVIEW_MODEL)
+    if _provider() == "groq":
+        return os.getenv("GROQ_REVIEW_MODEL", _DEFAULT_GROQ_REVIEW_MODEL)
     return os.getenv("OLLAMA_REVIEW_MODEL", _DEFAULT_REVIEW_MODEL)
 
 
 def _chat(modelo: str, messages: list[dict], json_mode: bool) -> str:
     provider = _provider()
-    if provider in ("nvidia", "cerebras", "google"):
+    if provider in ("nvidia", "cerebras", "google", "groq"):
         if provider == "nvidia":
             kwargs = _nvidia_params(modelo)
         elif provider == "google":
@@ -114,8 +132,10 @@ def _chat(modelo: str, messages: list[dict], json_mode: bool) -> str:
             cliente = _nvidia_client()
         elif provider == "cerebras":
             cliente = _cerebras_client()
-        else:
+        elif provider == "google":
             cliente = _google_client()
+        else:
+            cliente = _groq_client()
         resposta = cliente.chat.completions.create(model=modelo, messages=messages, **kwargs)
         return resposta.choices[0].message.content
 
@@ -139,6 +159,10 @@ def complete_json(prompt: str, system: str = "", model: str | None = None) -> di
     qualquer lixo depois dele (achado ao vivo no SA: o Gemini às vezes devolve um objeto JSON
     válido seguido de chaves de fechamento extras, mesmo com response_format=json_object).
     Continua rejeitando qualquer coisa que não comece com JSON válido, inclusive JSON truncado.
+    Também rejeita um JSON tecnicamente válido mas que não seja um objeto (`{...}`) — achado ao
+    vivo com gemini-3.5-flash-lite, que às vezes devolve uma lista solta (`[...]`) em vez do
+    objeto pedido no prompt; sem essa checagem, cada skill chamadora quebra com um
+    AttributeError confuso (`'list' object has no attribute 'get'`) em vez de um erro claro aqui.
     """
     modelo = model or generator_model()
     messages = [{"role": "system", "content": system}] if system else []
@@ -146,6 +170,8 @@ def complete_json(prompt: str, system: str = "", model: str | None = None) -> di
     conteudo = _chat(modelo, messages, json_mode=True)
     try:
         dados, _ = json.JSONDecoder().raw_decode(conteudo.strip())
-        return dados
     except json.JSONDecodeError as exc:
         raise ValueError(f"Resposta do LLM não é um JSON válido: {conteudo!r}") from exc
+    if not isinstance(dados, dict):
+        raise ValueError(f"Resposta do LLM não é um objeto JSON: {conteudo!r}")
+    return dados

@@ -11,6 +11,11 @@ _RAIZ = Path(__file__).resolve().parent
 sys.path.insert(0, str(_RAIZ / "src"))
 load_dotenv(_RAIZ / ".env")
 
+# Console do Windows/pipes redirecionados usam cp1252 por padrão, que não codifica emojis
+# (ex.: 💡 na sugestão de memória institucional) — força UTF-8 na saída independente do terminal.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 from aqua_qe_product_owner.models import Epic, StoryStatus, UserStory  # noqa: E402
 from aqua_qe_product_owner.orchestrator.product_owner import handle_request  # noqa: E402
 from aqua_qe_product_owner.skills.create_jira_epic import create_jira_epic  # noqa: E402

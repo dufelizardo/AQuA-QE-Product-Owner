@@ -108,6 +108,20 @@ def test_reviewer_model_uses_google_default_when_provider_is_google(monkeypatch)
     assert llm_service.reviewer_model() == "gemini-2.5-flash-lite"
 
 
+def test_generator_model_uses_groq_default_when_provider_is_groq(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "groq")
+    monkeypatch.delenv("GROQ_MODEL", raising=False)
+
+    assert llm_service.generator_model() == "llama-3.3-70b-versatile"
+
+
+def test_reviewer_model_uses_groq_default_when_provider_is_groq(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "groq")
+    monkeypatch.delenv("GROQ_REVIEW_MODEL", raising=False)
+
+    assert llm_service.reviewer_model() == "openai/gpt-oss-120b"
+
+
 def test_complete_json_dispatches_to_nvidia_when_provider_is_nvidia(monkeypatch):
     monkeypatch.setenv("LLM_PROVIDER", "nvidia")
     captured = {}
@@ -213,6 +227,41 @@ def test_complete_json_dispatches_to_google_when_provider_is_google(monkeypatch)
     assert captured["kwargs"] == {"max_tokens": 8192, "response_format": {"type": "json_object"}}
 
 
+def test_complete_json_dispatches_to_groq_when_provider_is_groq(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "groq")
+    captured = {}
+
+    class FakeMessage:
+        content = '{"ok": true}'
+
+    class FakeChoice:
+        message = FakeMessage()
+
+    class FakeCompletions:
+        def create(self, model, messages, **kwargs):
+            captured["model"] = model
+            captured["kwargs"] = kwargs
+
+            class FakeResponse:
+                choices = [FakeChoice()]
+
+            return FakeResponse()
+
+    class FakeChat:
+        completions = FakeCompletions()
+
+    class FakeGroqClient:
+        chat = FakeChat()
+
+    monkeypatch.setattr(llm_service, "_groq_client", lambda: FakeGroqClient())
+
+    resultado = llm_service.complete_json("pergunta")
+
+    assert resultado == {"ok": True}
+    assert captured["model"] == "llama-3.3-70b-versatile"
+    assert captured["kwargs"] == {"response_format": {"type": "json_object"}}
+
+
 def test_complete_json_uses_deepseek_reasoning_params_when_explicitly_selected(monkeypatch):
     """deepseek-ai/deepseek-v4-flash não é o default (saturou por capacidade no piloto original
     do PM), mas continua com params dedicados em _NVIDIA_MODEL_PARAMS caso seja selecionado
@@ -302,3 +351,18 @@ def test_complete_json_tolera_chaves_extras_apos_json_valido(monkeypatch):
     resultado = llm_service.complete_json("pergunta")
 
     assert resultado == {"titulo": "Exemplo"}
+
+
+def test_complete_json_rejeita_lista_json_solta(monkeypatch):
+    """Achado ao vivo com gemini-3.5-flash-lite: às vezes devolve uma lista JSON solta
+    (`[...]`) em vez do objeto pedido no prompt. json.JSONDecoder().raw_decode aceita isso
+    sem erro (é JSON válido), mas complete_json promete um dict — sem essa checagem, quem
+    chama quebra mais adiante com um AttributeError confuso em vez de um erro claro aqui."""
+
+    def fake_chat(self, model, messages, format=None):
+        return {"message": {"content": '[{"cenario": "Exemplo"}]'}}
+
+    monkeypatch.setattr("ollama.Client.chat", fake_chat)
+
+    with pytest.raises(ValueError):
+        llm_service.complete_json("pergunta")
