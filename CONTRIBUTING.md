@@ -1,47 +1,47 @@
-# Guia de Contribuição
+# Contributing Guide
 
-Obrigado por considerar contribuir com o **AQuA-QE Product Owner**! Antes de mais nada, vale a pena ler o `WHITEPAPER.md` (ou `WHITEPAPER.en.md`) e `docs/agent/` para entender o que o agente faz e por quê.
+Thanks for considering contributing to **AQuA-QE Product Owner**! Before anything else, it's worth reading `WHITEPAPER.en.md` (or `WHITEPAPER.md` in Portuguese) and `docs/agent/` to understand what the agent does and why.
 
-## Relatando problemas
+## Reporting issues
 
-- Confira as [issues existentes](https://github.com/dufelizardo/AQuA-QE-Product-Owner/issues) antes de abrir uma nova.
-- Se for algo que parece uma lacuna conhecida, veja primeiro o [Project "Backlog"](https://github.com/users/dufelizardo/projects/3) — pode já estar lá, deliberadamente adiado até haver um consumidor real.
-- Ao relatar um bug, inclua: passos para reproduzir, comportamento esperado vs. observado, modo usado (`--modo unitario/lote`), e o provedor de LLM ativo (`LLM_PROVIDER`, se diferente do padrão `ollama`).
+- Check the [existing issues](https://github.com/dufelizardo/AQuA-QE-Product-Owner/issues) before opening a new one.
+- If it looks like a known gap, check the [Backlog project](https://github.com/users/dufelizardo/projects/3) first — it may already be there, deliberately deferred until a real consumer shows up.
+- When reporting a bug, include: steps to reproduce, expected vs. observed behavior, the mode used (`--modo unitario/lote`), and the active LLM provider (`LLM_PROVIDER`, if different from the `ollama` default).
 
-## Propondo mudanças (Pull Requests)
+## Proposing changes (Pull Requests)
 
-- Para uma mudança grande, abra uma issue primeiro descrevendo o que pretende fazer.
-- Prefira PRs pequenos e focados — evite misturar correção de bug com feature nova.
-- **Este repositório não tem lint/type-check próprio** (`ruff`/`basedpyright` só existem na raiz do monorepo que originou este projeto) — não é preciso rodar nada disso aqui.
-- Rode `uv sync` e depois `uv run pytest` antes de abrir o PR. A suíte inteira é mockada — nenhum teste faz chamada real a Ollama/Jira/Confluence/Qdrant; um PR que precise de rede real para passar não será aceito.
-- Qualquer mudança numa skill geradora/revisora precisa preservar o ciclo `gerar → validar (checklist Python) → revisar (segundo LLM independente) → [refinar, humano-no-loop] → aceite humano explícito`. Nenhuma skill ou workflow pode setar `ArtifactStatus.ACCEPTED` sozinha — isso é sempre um ato humano no `run.py`.
-- Mudanças que permitam a uma skill inventar dado fora da fonte de entrada, ou que contornem a revisão humana, são rejeitadas. O guardrail mais crítico deste agente é **GR-1** (nunca inventar) — ver `docs/agent/guardrails.md` para o conjunto completo (GR-1/GR-2/GR-3 cobrem invenção, histórias vagas/não testáveis, e regras de negócio omitidas).
-- Se a mudança afeta comportamento observável, atualize também a documentação relevante: `docs/agent/*`, `README.md`/`README.pt.md`, `WHITEPAPER.md`/`WHITEPAPER.en.md`, e os diagramas em `docs/architecture/` (draw.io + SVG) se o fluxo mudou.
+- For a large change, open an issue first describing what you intend to do.
+- Prefer small, focused PRs — avoid mixing a bug fix with a new feature.
+- **This repository has no lint/type-check config of its own** (`ruff`/`basedpyright` only exist at the root of the monorepo this project originated from) — there's nothing to run here.
+- Run `uv sync` then `uv run pytest` before opening the PR. The entire suite is mocked — no test makes a real call to Ollama/Jira/Confluence/Qdrant; a PR that needs real network access to pass a test will not be accepted.
+- Any change to a generator/reviewer skill must preserve the `generate → validate (Python checklist) → review (second, independent LLM) → [refine, human-in-the-loop] → explicit human acceptance` cycle. No skill or workflow may set `ArtifactStatus.ACCEPTED` on its own — that's always a human act in `run.py`.
+- Changes that let a skill invent data outside the input source, or bypass human review, are rejected. This agent's most critical guardrail is **GR-1** (never invent) — see `docs/agent/guardrails.md` for the full set (GR-1/GR-2/GR-3 cover invention, vague/untestable stories, and omitted business rules).
+- If the change affects observable behavior, also update the relevant docs: `docs/agent/*`, `README.md`/`README.pt.md`, `WHITEPAPER.md`/`WHITEPAPER.en.md`, and the diagrams in `docs/architecture/` (draw.io + SVG) if the flow changed.
 
-## Ambiente de desenvolvimento
+## Development environment
 
 ```bash
-# Python 3.12+ e uv já instalados
-ollama pull mistral   # geração
-ollama pull phi4      # revisor independente
-ollama pull bge-m3    # embeddings (memória institucional de refinamento)
+# Python 3.12+ and uv already installed
+ollama pull mistral   # generation
+ollama pull phi4      # independent reviewer
+ollama pull bge-m3    # embeddings (institutional refinement memory)
 
 uv sync
-cp .env.example .env  # preencha se for usar --jira/--confluence
+cp .env.example .env  # fill in if using --jira/--confluence
 
 uv run pytest
 ```
 
-## Processo de Pull Request
+## Pull Request process
 
-1. Fork do repositório, branch a partir de `main`.
-2. Faça a mudança, com testes cobrindo o novo comportamento.
-3. `uv run pytest` localmente antes de abrir o PR.
-4. Descreva a mudança no PR, referenciando a issue relacionada (ex. "Closes #12").
-5. Aguarde a revisão — esteja aberto a ajustes, especialmente em torno dos guardrails.
+1. Fork the repository, branch from `main`.
+2. Make the change, with tests covering the new behavior.
+3. `uv run pytest` locally before opening the PR.
+4. Describe the change in the PR, referencing the related issue (e.g. "Closes #12").
+5. Wait for review — be open to adjustments, especially around the guardrails.
 
-## Onde encontrar mais
+## Where to find more
 
-- [Wiki](https://github.com/dufelizardo/AQuA-QE-Product-Owner/wiki) — visão geral com links para tudo.
-- [Discussions](https://github.com/dufelizardo/AQuA-QE-Product-Owner/discussions) — comece pelo post "Welcome"/mais recente.
-- [Backlog project](https://github.com/users/dufelizardo/projects/3) — o que está deliberadamente fora desta fase.
+- [Wiki](https://github.com/dufelizardo/AQuA-QE-Product-Owner/wiki) — overview with links to everything.
+- [Discussions](https://github.com/dufelizardo/AQuA-QE-Product-Owner/discussions) — start with the most recent "Welcome"-style post.
+- [Backlog project](https://github.com/users/dufelizardo/projects/3) — what's deliberately out of scope for this phase.
