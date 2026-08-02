@@ -9,17 +9,30 @@ Agent that generates User Stories, Epics and Acceptance Criteria from PRDs, requ
 **What's the benefit**: consistent, INVEST-quality stories with full traceability to the PRD, plus a human-in-the-loop refinement cycle instead of a one-shot, unreviewable draft.
 **How it works (high level)**: PRD/requirement source → identify actors/goals/business rules → generate a Story or Epic → validate → review (a second, independent LLM) → [refine] → human accepts.
 
+## Example
+
+**Input**: a PRD (`.md`/Jira/Confluence).
+
+**Output** — a User Story or Epic, with these real fields (see `knowledge/templates/user_story.md`/`epic.md`):
+
+```
+As <actor/persona>,
+I want <action/capability>,
+So that <benefit/value>.
+```
+
+- ID
+- Acceptance Criteria
+- Business Rules
+- Traceability (requirement → story → acceptance criteria)
+
+## Structure
+
 The diagram below describes the *agent engineering methodology* used to build this agent — not its runtime pipeline (see "How it works" above):
 
 ```
 PRD → System Design → Agent Design → AI Specs/Rules/Skills → Context Engineering → Memory/MCP → Agents → Outputs
 ```
-
-## Relationship with AQuA-QE Product Manager
-
-This agent and the AQuA-QE Product Manager are **independent** — separate repositories, no shared runtime, no direct call between them. Product Manager owns the **idea → PRD** step (discovery, vision, strategy, PRD generation/refinement, prioritization); Product Owner **only consumes** an already-written PRD (`--arquivo`/`--jira`/`--confluence`) to produce Epics and User Stories. The Product Owner never generates, refines, or publishes a PRD — that responsibility moved entirely to Product Manager once it was built (this agent used to have its own `--modo prd`, removed once the overlap was identified).
-
-## Structure
 
 - **`docs/standards/`** — platform standards (how to write an AI Spec, a Rule, a PRD, etc.). Change rarely.
 - **`docs/agent/`** — this agent's full specification: PRD, System Design, Agent Design, AI Spec, Rules, Persona, Objectives, Output Schema, Guardrails, Evaluation, Prompt, and `agent_manifest.yaml` (the agent manifest — inputs, outputs, skills, memory, rules).
@@ -33,6 +46,10 @@ This agent and the AQuA-QE Product Manager are **independent** — separate repo
 - **`src/aqua_qe_product_owner/workflow/`** — orchestration of the skill sequence per use case (generate a single User Story, generate a batch Epic, generate/complement acceptance criteria).
 - **`src/aqua_qe_product_owner/orchestrator/`** — single entry point that decides which workflow to run.
 - **`src/aqua_qe_product_owner/services/`** — external integrations: `llm_service` (Ollama by default, generation/review; optional cloud provider pilot via `LLM_PROVIDER=nvidia|cerebras|google` toggle — see Setup below), `embedding_service` (local Ollama, `bge-m3`, no toggle), `rag_service` (embedded/local Qdrant, no server) and `jira_service` (Jira Cloud REST API).
+
+## Relationship with AQuA-QE Product Manager
+
+This agent and the AQuA-QE Product Manager are **independent** — separate repositories, no shared runtime, no direct call between them. Product Manager owns the **idea → PRD** step (discovery, vision, strategy, PRD generation/refinement, prioritization); Product Owner **only consumes** an already-written PRD (`--arquivo`/`--jira`/`--confluence`) to produce Epics and User Stories. The Product Owner never generates, refines, or publishes a PRD — that responsibility moved entirely to Product Manager once it was built (this agent used to have its own `--modo prd`, removed once the overlap was identified).
 
 ## Setup
 

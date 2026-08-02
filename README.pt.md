@@ -9,17 +9,30 @@ Agente que gera User Stories, Épicos e Critérios de Aceitação a partir de PR
 **Qual o benefício**: stories consistentes e com qualidade INVEST, com rastreabilidade total à PRD, além de um ciclo de refinamento humano-no-loop em vez de um rascunho único e não revisável.
 **Como funciona (alto nível)**: PRD/fonte de requisito → identifica atores/objetivos/regras de negócio → gera uma Story ou Epic → valida → revisa (um segundo LLM independente) → [refina] → aceite humano.
 
+## Exemplo
+
+**Entrada**: uma PRD (`.md`/Jira/Confluence).
+
+**Saída** — uma User Story ou Epic, com estes campos reais (ver `knowledge/templates/user_story.md`/`epic.md`):
+
+```
+Como <ator/persona>,
+Quero <ação/capacidade>,
+Para que <benefício/valor>.
+```
+
+- ID
+- Critérios de Aceitação
+- Regras de Negócio
+- Rastreabilidade (requisito → story → critério de aceitação)
+
+## Estrutura
+
 O diagrama abaixo descreve a *metodologia de engenharia de agentes* usada para construir este agente — não o seu pipeline de execução (ver "Como funciona" acima):
 
 ```
 PRD → System Design → Agent Design → AI Specs/Rules/Skills → Context Engineering → Memory/MCP → Agents → Outputs
 ```
-
-## Relação com o AQuA-QE Product Manager
-
-Este agente e o AQuA-QE Product Manager são **independentes** — repositórios separados, sem runtime compartilhado, sem chamada direta entre eles. O Product Manager é dono do passo **ideia → PRD** (descoberta, visão, estratégia, geração/refino do PRD, priorização); o Product Owner **só consome** um PRD já pronto (`--arquivo`/`--jira`/`--confluence`) para produzir Épicos e User Stories. O Product Owner nunca gera, refina ou publica um PRD — essa responsabilidade migrou inteiramente para o Product Manager assim que ele foi construído (este agente chegou a ter seu próprio `--modo prd`, removido ao identificar a sobreposição).
-
-## Estrutura
 
 - **`docs/standards/`** — padrões da plataforma (como escrever um AI Spec, uma Rule, um PRD, etc.). Mudam pouco.
 - **`docs/agent/`** — especificação completa deste agente: PRD, System Design, Agent Design, AI Spec, Rules, Persona, Objectives, Output Schema, Guardrails, Evaluation, Prompt e o `agent_manifest.yaml` (manifesto do agente — inputs, outputs, skills, memory, rules).
@@ -33,6 +46,10 @@ Este agente e o AQuA-QE Product Manager são **independentes** — repositórios
 - **`src/aqua_qe_product_owner/workflow/`** — orquestração da sequência de skills por caso de uso (gerar User Story unitária, gerar Epic em lote, gerar/complementar critérios de aceitação).
 - **`src/aqua_qe_product_owner/orchestrator/`** — ponto de entrada único que decide qual workflow executar.
 - **`src/aqua_qe_product_owner/services/`** — integrações externas: `llm_service` (Ollama por padrão, geração/revisão; piloto opcional de provedor em nuvem via toggle `LLM_PROVIDER=nvidia|cerebras|google` — ver Configuração abaixo), `embedding_service` (Ollama local, `bge-m3`, sem toggle), `rag_service` (Qdrant embutido/local, sem servidor) e `jira_service` (API REST do Jira Cloud).
+
+## Relação com o AQuA-QE Product Manager
+
+Este agente e o AQuA-QE Product Manager são **independentes** — repositórios separados, sem runtime compartilhado, sem chamada direta entre eles. O Product Manager é dono do passo **ideia → PRD** (descoberta, visão, estratégia, geração/refino do PRD, priorização); o Product Owner **só consome** um PRD já pronto (`--arquivo`/`--jira`/`--confluence`) para produzir Épicos e User Stories. O Product Owner nunca gera, refina ou publica um PRD — essa responsabilidade migrou inteiramente para o Product Manager assim que ele foi construído (este agente chegou a ter seu próprio `--modo prd`, removido ao identificar a sobreposição).
 
 ## Configuração
 
