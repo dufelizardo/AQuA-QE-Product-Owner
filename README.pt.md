@@ -1,5 +1,7 @@
 # AQuA-QE Product Owner
 
+![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue) ![Arquitetura: humano-no-loop](https://img.shields.io/badge/arquitetura-humano--no--loop-blueviolet)
+
 > Também disponível em [English](README.md).
 
 Agente que gera User Stories, Épicos e Critérios de Aceitação a partir de PRDs, documentos de requisitos e outras fontes de entrada.
