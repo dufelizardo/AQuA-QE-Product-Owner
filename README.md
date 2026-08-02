@@ -2,7 +2,14 @@
 
 > Also available in [Portuguese](README.pt.md).
 
-Agent that generates User Stories, Epics and Acceptance Criteria from PRDs, requirement documents and other input sources — following the agent engineering flow:
+Agent that generates User Stories, Epics and Acceptance Criteria from PRDs, requirement documents and other input sources.
+
+**What problem it solves**: turns an already-written PRD into a backlog of Epics, User Stories, and Acceptance Criteria — no manual backlog authoring required.
+**Who uses it**: product owners and business analysts grooming a backlog from a finished PRD.
+**What's the benefit**: consistent, INVEST-quality stories with full traceability to the PRD, plus a human-in-the-loop refinement cycle instead of a one-shot, unreviewable draft.
+**How it works (high level)**: PRD/requirement source → identify actors/goals/business rules → generate a Story or Epic → validate → review (a second, independent LLM) → [refine] → human accepts.
+
+The diagram below describes the *agent engineering methodology* used to build this agent — not its runtime pipeline (see "How it works" above):
 
 ```
 PRD → System Design → Agent Design → AI Specs/Rules/Skills → Context Engineering → Memory/MCP → Agents → Outputs

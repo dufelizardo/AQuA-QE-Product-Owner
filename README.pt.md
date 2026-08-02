@@ -2,7 +2,14 @@
 
 > Também disponível em [English](README.md).
 
-Agente que gera User Stories, Épicos e Critérios de Aceitação a partir de PRDs, documentos de requisitos e outras fontes de entrada — seguindo o fluxo de engenharia de agentes:
+Agente que gera User Stories, Épicos e Critérios de Aceitação a partir de PRDs, documentos de requisitos e outras fontes de entrada.
+
+**Qual problema resolve**: transforma uma PRD já escrita num backlog de Épicos, User Stories e Critérios de Aceitação — sem escrever backlog manualmente.
+**Quem usa**: product owners e analistas de negócio refinando backlog a partir de uma PRD pronta.
+**Qual o benefício**: stories consistentes e com qualidade INVEST, com rastreabilidade total à PRD, além de um ciclo de refinamento humano-no-loop em vez de um rascunho único e não revisável.
+**Como funciona (alto nível)**: PRD/fonte de requisito → identifica atores/objetivos/regras de negócio → gera uma Story ou Epic → valida → revisa (um segundo LLM independente) → [refina] → aceite humano.
+
+O diagrama abaixo descreve a *metodologia de engenharia de agentes* usada para construir este agente — não o seu pipeline de execução (ver "Como funciona" acima):
 
 ```
 PRD → System Design → Agent Design → AI Specs/Rules/Skills → Context Engineering → Memory/MCP → Agents → Outputs
